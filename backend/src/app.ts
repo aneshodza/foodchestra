@@ -4,6 +4,7 @@ import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './swagger';
 import aliveRouter from './routers/alive.router';
 import productsRouter from './routers/products.router';
+import recallsRouter from './routers/recalls.router';
 
 const app = express();
 
@@ -32,5 +33,6 @@ app.use(express.json());
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/alive', aliveRouter);
 app.use('/products', productsRouter);
+app.use('/recalls', recallsRouter);
 
 export default app;

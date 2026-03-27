@@ -4,7 +4,7 @@ import { isValidBarcode } from '../utils/barcode';
 const router = Router();
 
 const OFF_BASE =
-  process.env['OPENFOODFACTS_BASE_URL'] ??
+  process.env['OPENFOODFACTS_BASE_URL'] ||
   'https://world.openfoodfacts.org/api/v0/product';
 
 /**
