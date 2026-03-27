@@ -318,10 +318,13 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 - LangGraph: single `FoodAgent` class now, clean enough to add more agents later
 
 ## CI
-- `.github/workflows/tests.yml` — runs on every push and PR
-- 5 parallel jobs: `lint-backend`, `lint-frontend`, `lint-sdk`, `lint-agent`, `lint-mcp`
-- Frontend job runs both ESLint and Stylelint
-- All jobs: `npm ci` from root (installs all workspaces), then scoped `npm run lint --workspace=<name>`
+- `.github/workflows/tests.yml` — runs on push to `main` and on PRs (not on every branch push, to avoid double-runs)
+- Parallel jobs: `lint-backend`, `lint-frontend`, `lint-sdk`, `lint-agent`, `lint-mcp`, `test-backend`, `test-frontend`
+- Frontend lint job runs both ESLint and Stylelint
+- `test-backend` runs Jest (`npm run test --workspace=backend`)
+- `test-frontend` runs Vitest (`npm run test --workspace=frontend`)
+- `cypress` job runs last, only after all lint + unit test jobs pass (`needs: [...]`) — it starts backend + frontend, waits via `wait-on`, then runs Cypress
+- `npm run test` from root runs backend tests, frontend tests, then Cypress in sequence
 
 ## Key architectural decisions
 - Monorepo: `backend/`, `frontend/`, `sdk/`, `agent/`, `mcp/`
