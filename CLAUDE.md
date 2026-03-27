@@ -402,6 +402,15 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 - Test count: 27 → 61 (7 test files). New files: `barcode.test.ts` (11 tests), `ScannerPage.test.tsx` (12 tests). Expanded: `ProductView.test.tsx` (13 tests), `ScannerView.test.tsx` (9 tests), `App.test.tsx` trimmed to 2 routing smoke tests.
 - LSP shows false-positive TS errors for `toBeInTheDocument` / module paths — all 61 tests pass; these are a tsconfig path resolution artefact in the language server, not real errors.
 
+## GS1-2027 QR Code Support (feature/gs1-2027-support)
+- QR scanning now handles GS1 Digital Link codes (the standard rolling out for food products by 2027).
+- `frontend/src/utils/gs1.ts` — pure parser `parseGs1QrCode(input): Gs1ScanData | null`; supports URL format (`https://id.gs1.org/01/.../10/.../17/...`) and bracket element string format (`(01)...(10)...(17)...`); strips leading zeros from 14-digit GTIN to produce a standard EAN barcode.
+- `Gs1ScanData` interface: `{ barcode, batchNumber, expiryDate }` — all three AIs extracted (01=GTIN, 10=batch, 17=expiry).
+- `ScannerPage`: QR flow now mirrors barcode flow — `parseGs1QrCode` → `navigate('/products/:barcode?batchNumber=...&expiryDate=...')`. Invalid GS1 shows inline `alert-danger` instead of the old `alert()` stub.
+- `ProductView`: `batchNumber` and `expiryDate` arrive as query params — reading them is deferred to when the complaint form is built.
+- `ScannerView`: fixed double-stop race condition — `stopScanner` now nulls `scannerRef.current` immediately on entry, so the React cleanup callback is always a no-op after a successful scan.
+- Tests: `frontend/src/__tests__/gs1.test.ts` (11 tests, parser unit tests); `ScannerPage.test.tsx` updated — old TODO-alert tests replaced with GS1 navigate + error tests.
+
 ## Product Caching
 - OpenFoodFacts product data is now cached in the PostgreSQL `products` table.
 - `GET /products/:barcode` checks the database before fetching from OpenFoodFacts.
