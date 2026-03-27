@@ -1,0 +1,15 @@
+{
+  "name": "foodchestra",
+  "private": true,
+  "scripts": {
+    "lint": "npm run lint --workspace=backend",
+    "lint:fix": "npm run lint:fix --workspace=backend"
+  },
+  "workspaces": [
+    "backend",
+    "frontend",
+    "sdk",
+    "agent",
+    "mcp"
+  ]
+}
