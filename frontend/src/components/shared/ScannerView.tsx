@@ -30,17 +30,18 @@ const ScannerView = ({ onScanSuccess, onScanError, mode = 'qr' }: ScannerViewPro
     scannerRef.current = scanner;
 
     const stopScanner = async () => {
-      if (scannerRef.current) {
-        try {
-          const state = scannerRef.current.getState();
-          // SCANNING = 2, PAUSED = 3
-          if (state === 2 || state === 3) {
-            await scannerRef.current.stop();
-          }
-          scannerRef.current.clear();
-        } catch (err) {
-          console.warn('Failed to stop/clear scanner:', err);
+      const scanner = scannerRef.current;
+      if (!scanner) return;
+      scannerRef.current = null; // Prevent any concurrent or subsequent call from entering
+      try {
+        const state = scanner.getState();
+        // SCANNING = 2, PAUSED = 3
+        if (state === 2 || state === 3) {
+          await scanner.stop();
         }
+        scanner.clear();
+      } catch (err) {
+        console.warn('Failed to stop/clear scanner:', err);
       }
     };
 
