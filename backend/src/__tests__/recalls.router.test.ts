@@ -81,6 +81,7 @@ describe('GET /recalls', () => {
 
   it('returns 500 when the repository throws', async () => {
     mockGetRecalls.mockRejectedValueOnce(new Error('DB connection failed'));
+    jest.spyOn(console, 'error').mockImplementationOnce(() => {});
 
     const res = await request(app).get('/recalls');
 
