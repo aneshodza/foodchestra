@@ -283,9 +283,10 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 ## What exists in frontend/
 - Vite + React 18 + TypeScript (ES2022, `react-jsx` — no React import needed in components)
 - Bootstrap 5 + Material Icons loaded globally via `src/App.scss`
-- `src/components/shared/` — reusable components: Button (variant prop), HomeIcon, BackendStatus (polls `/alive` every 5s, shows Bootstrap alert with Material Icon, absolute top-left); all new shared UI goes here
+- `src/components/shared/` — reusable components: Button (variant prop), HomeIcon, BackendStatus, ScannerView; all new shared UI goes here
 - `src/styles/variables/_colours.scss` — brand/neutral/semantic colour tokens; `_breakpoints.scss` — BS5-compatible breakpoints + `respond-up()` mixin
 - SCSS convention: BEM class names, no inline styles, no magic numbers — always use variables
+- Scanner: uses `html5-qrcode`. Configuration (FPS, ROI dimensions) managed via `.env`. Instance must be stopped on unmount.
 - `.stylelintrc.json` — enforces SCSS variable/mixin/class naming; run with `npm run lint:scss`
 - `.eslintrc.json` — TS + React + react-hooks rules; `npm run lint` / `npm run lint:fix`
 - Dev server: `npm run dev` (from `frontend/`) — Vite on port 5173
