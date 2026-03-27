@@ -29,6 +29,21 @@ const ScannerView = ({ onScanSuccess, onScanError, mode = 'qr' }: ScannerViewPro
     const scanner = new Html5Qrcode('reader');
     scannerRef.current = scanner;
 
+    const stopScanner = async () => {
+      if (scannerRef.current) {
+        try {
+          const state = scannerRef.current.getState();
+          // SCANNING = 2, PAUSED = 3
+          if (state === 2 || state === 3) {
+            await scannerRef.current.stop();
+          }
+          scannerRef.current.clear();
+        } catch (err) {
+          console.warn('Failed to stop/clear scanner:', err);
+        }
+      }
+    };
+
     const config = {
       fps,
       qrbox: { width: boxWidth, height: boxHeight },
@@ -56,13 +71,7 @@ const ScannerView = ({ onScanSuccess, onScanError, mode = 'qr' }: ScannerViewPro
             setIsCooldown(true);
 
             // Stop the camera immediately on success
-            try {
-              if (scanner.isScanning) {
-                await scanner.stop();
-              }
-            } catch (err) {
-              console.warn('Failed to stop scanner on success:', err);
-            }
+            await stopScanner();
             
             onScanSuccess(decodedText);
           },
@@ -70,8 +79,12 @@ const ScannerView = ({ onScanSuccess, onScanError, mode = 'qr' }: ScannerViewPro
             if (onScanError) onScanError(errorMessage);
           }
         );
+
+        // If it unmounted while starting, stop it now
+        if (!isMounted) {
+          await stopScanner();
+        }
       } catch (err) {
-        // If it failed to start because it was unmounted mid-start, ignore it
         if (isMounted) {
           console.error('Failed to start scanner:', err);
         }
@@ -83,25 +96,7 @@ const ScannerView = ({ onScanSuccess, onScanError, mode = 'qr' }: ScannerViewPro
     // Cleanup on unmount
     return () => {
       isMounted = false;
-      const cleanup = async () => {
-        if (scannerRef.current) {
-          try {
-            // Give it a small moment if it's currently starting up
-            // This helps avoid race conditions where stop() is called before start() finishes
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            const state = scannerRef.current.getState();
-            // States from Html5QrcodeScannerState: SCANNING = 2, PAUSED = 3
-            if (state === 2 || state === 3) {
-              await scannerRef.current.stop();
-            }
-          } catch (err) {
-            // Ignore errors that happen during unmount
-            console.warn('Silent failure during scanner cleanup:', err);
-          }
-        }
-      };
-      cleanup();
+      stopScanner();
     };
   }, [mode, onScanSuccess, onScanError, boxWidth, boxHeight, fps]);
 
