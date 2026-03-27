@@ -2,6 +2,10 @@
   "name": "foodchestra",
   "private": true,
   "scripts": {
+    "dev": "npm run dev:backend & npm run dev:frontend",
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "kill": "{ lsof -ti :3000; lsof -ti :5173; } | xargs kill -9 2>/dev/null || true",
     "lint": "npm run lint --workspace=backend",
     "lint:fix": "npm run lint:fix --workspace=backend"
   },

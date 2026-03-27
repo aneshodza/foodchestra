@@ -1,0 +1,24 @@
+// ── Breakpoints (mobile-first, matching Bootstrap 5 defaults) ─────────────────
+$bp-xs: 0px;
+$bp-sm: 576px;
+$bp-md: 768px;
+$bp-lg: 992px;
+$bp-xl: 1200px;
+$bp-xxl: 1400px;
+
+// ── respond-up($bp): apply styles from the given breakpoint upward ─────────────
+// Usage:
+//   @include respond-up(md) { font-size: 1.25rem; }
+@mixin respond-up($bp) {
+  @if $bp == sm {
+    @media (min-width: $bp-sm) { @content; }
+  } @else if $bp == md {
+    @media (min-width: $bp-md) { @content; }
+  } @else if $bp == lg {
+    @media (min-width: $bp-lg) { @content; }
+  } @else if $bp == xl {
+    @media (min-width: $bp-xl) { @content; }
+  } @else if $bp == xxl {
+    @media (min-width: $bp-xxl) { @content; }
+  }
+}

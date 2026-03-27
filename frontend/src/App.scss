@@ -1,0 +1,19 @@
+// ── Third-party imports ───────────────────────────────────────────────────────
+@import 'material-icons/iconfont/material-icons.css';
+@import 'bootstrap/scss/bootstrap';
+
+// ── Project variables ─────────────────────────────────────────────────────────
+@import 'styles/variables/colours';
+@import 'styles/variables/breakpoints';
+
+// ── Global base styles ────────────────────────────────────────────────────────
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: $colour-background;
+  color: $colour-text-primary;
+}
