@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { client } from '@foodchestra/sdk';
-import type { Product } from '@foodchestra/sdk';
+import type { Product, ReportsResponse } from '@foodchestra/sdk';
 import Button from './shared/Button';
 import './ProductView.scss';
 
 const ProductView = () => {
   const { barcode } = useParams<{ barcode: string }>();
+  const navigate = useNavigate();
   const [product, setProduct] = useState<Product | null>(null);
+  const [reports, setReports] = useState<ReportsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,21 +19,31 @@ const ProductView = () => {
     setLoading(true);
     setError(null);
 
-    client.products.getByBarcode(barcode)
-      .then((res) => {
+    Promise.allSettled([
+      client.products.getByBarcode(barcode),
+      client.reports.getReports(barcode),
+    ]).then(([productResult, reportsResult]) => {
+      if (productResult.status === 'fulfilled') {
+        const res = productResult.value;
         if (res.found && res.product) {
           setProduct(res.product);
         } else {
           setError('Product not found');
         }
-      })
-      .catch((err) => {
-        console.error('Failed to fetch product:', err);
+      } else {
+        console.error('Failed to fetch product:', productResult.reason);
         setError('Failed to load product details');
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+      }
+
+      if (reportsResult.status === 'fulfilled') {
+        setReports(reportsResult.value);
+      } else {
+        console.error('Failed to fetch reports:', reportsResult.reason);
+        // Reports are secondary — degrade gracefully
+      }
+
+      setLoading(false);
+    });
   }, [barcode]);
 
   if (loading) {
@@ -67,6 +79,13 @@ const ProductView = () => {
           <span>Back</span>
         </Link>
       </div>
+
+      {reports?.hasWarning && (
+        <div className="alert alert-danger d-flex align-items-center gap-2 mb-3">
+          <span className="material-icons">warning</span>
+          <span>Multiple users have reported issues with this product recently.</span>
+        </div>
+      )}
 
       <div className="card shadow-sm border-0 overflow-hidden">
         <div className="row g-0">
@@ -123,8 +142,19 @@ const ProductView = () => {
                 </div>
               </div>
 
+              {reports && reports.count > 0 && (
+                <p className="text-muted small mt-2 mb-0">
+                  <span className="material-icons align-middle fs-6 me-1">people</span>
+                  {reports.count} {reports.count === 1 ? 'user' : 'users'} reported issues in the last 30 days
+                </p>
+              )}
+
               <div className="mt-4 pt-3 border-top d-flex gap-2">
-                <Button label="Report Issue" variant="outline-danger" onClick={() => alert('Complaints not implemented yet')} />
+                <Button
+                  label="Report Issue"
+                  variant="outline-danger"
+                  onClick={() => navigate(`/products/${barcode}/report`)}
+                />
                 <Button label="Trace Journey" variant="primary" onClick={() => alert('Supply chain journey not implemented yet')} />
               </div>
             </div>
