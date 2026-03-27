@@ -1,8 +1,11 @@
 import HomeIcon from './components/shared/HomeIcon';
 import Button from './components/shared/Button';
+import BackendStatus from './components/shared/BackendStatus';
 
 function App() {
   return (
+    <>
+      <BackendStatus />
     <main className="container py-5">
       <div className="row justify-content-center">
         <div className="col-12 col-md-6">
@@ -21,6 +24,7 @@ function App() {
         </div>
       </div>
     </main>
+    </>
   );
 }
 
