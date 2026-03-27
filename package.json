@@ -7,6 +7,7 @@
     "dev:frontend": "npm run dev --workspace=frontend",
     "dev:agent": "npm run dev --workspace=agent",
     "kill": "{ lsof -ti :3000; lsof -ti :5173; lsof -ti :3001; } | xargs kill -9 2>/dev/null || true",
+    "test": "npm run test -w backend -w frontend && npm run cypress:run --workspace=frontend",
     "lint": "npm run lint -w backend -w frontend -w sdk -w agent -w mcp",
     "lint:scss": "npm run lint:scss --workspace=frontend",
     "lint:fix": "npm run lint:fix -w backend -w frontend -w sdk -w agent -w mcp"
