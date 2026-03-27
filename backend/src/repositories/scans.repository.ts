@@ -7,13 +7,13 @@ export interface Scan {
   scan_result: string;
   scan_type: ScanType;
   scanned_at: Date;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface CreateScanInput {
   scanResult: string;
   scanType: ScanType;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export const ScansRepository = {
