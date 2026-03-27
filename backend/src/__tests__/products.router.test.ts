@@ -26,7 +26,7 @@ describe('GET /products/:barcode', () => {
     expect(res.body).toEqual({ error: 'Invalid barcode format' });
   });
 
-  it('returns cached product if fresh (within 24h)', async () => {
+  it('VERIFY CACHE HIT: returns cached product without calling OpenFoodFacts if fresh (within 24h)', async () => {
     const cachedProduct: repo.ProductRow = {
       id: 1,
       barcode: '5901234123457',
@@ -47,6 +47,7 @@ describe('GET /products/:barcode', () => {
 
     expect(res.status).toBe(200);
     expect(mockFetch).not.toHaveBeenCalled();
+    expect(mockUpsertProduct).not.toHaveBeenCalled();
     expect(res.body).toMatchObject({
       found: true,
       product: {
@@ -57,38 +58,50 @@ describe('GET /products/:barcode', () => {
     });
   });
 
-  it('fetches from OpenFoodFacts if cache is stale (> 24h)', async () => {
+  it('VERIFY CACHE INVALIDATION: re-fetches from OpenFoodFacts and updates DB if cache is stale (> 24h)', async () => {
     const staleProduct: repo.ProductRow = {
       id: 1,
       barcode: '5901234123457',
-      name: 'Stale Chocolate',
-      brands: 'Stalebrand',
-      stores: 'Stalestore',
-      countries: 'Staleland',
+      name: 'Old Name',
+      brands: 'Old Brand',
+      stores: 'Old Store',
+      countries: 'Old Country',
       quantity: '100g',
       nutriscore_grade: 'e',
-      ingredients_text: 'stale, sugar',
+      ingredients_text: 'old ingredients',
       ingredients: [],
       image_url: null,
       last_validated_at: new Date(Date.now() - 30 * 60 * 60 * 1000), // 30h old
     };
     mockGetProductByBarcode.mockResolvedValueOnce(staleProduct);
+    
+    const freshOFFData = {
+      product_name: 'Fresh New Name',
+      brands: 'Fresh Brand',
+      nutriscore_grade: 'a',
+    };
+
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
         status: 1,
-        product: { product_name: 'Fresh Chocolate' },
+        product: freshOFFData,
       }),
     } as unknown as Response);
-    mockUpsertProduct.mockResolvedValueOnce(2);
+    
+    mockUpsertProduct.mockResolvedValueOnce(1); // Returns same ID
 
     const res = await request(app).get('/products/5901234123457');
 
     expect(res.status).toBe(200);
-    expect(mockFetch).toHaveBeenCalled();
-    expect(mockUpsertProduct).toHaveBeenCalled();
-    expect(res.body.product.id).toBe(2);
-    expect(res.body.product.name).toBe('Fresh Chocolate');
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(mockUpsertProduct).toHaveBeenCalledWith(expect.objectContaining({
+      barcode: '5901234123457',
+      name: 'Fresh New Name',
+      nutriscore_grade: 'a',
+    }));
+    expect(res.body.product.name).toBe('Fresh New Name');
+    expect(res.body.product.id).toBe(1);
   });
 
   it('returns 502 when fetch throws a network error', async () => {

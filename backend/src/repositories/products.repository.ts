@@ -42,7 +42,7 @@ export async function upsertProduct(product: Omit<ProductRow, 'id' | 'last_valid
       product.quantity,
       product.nutriscore_grade,
       product.ingredients_text,
-      product.ingredients,
+      JSON.stringify(product.ingredients),
       product.image_url,
     ],
   );
