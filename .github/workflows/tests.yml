@@ -94,6 +94,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run build --workspace=sdk
       - run: npm run test --workspace=frontend
 
   # cypress:
