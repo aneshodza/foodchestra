@@ -10,6 +10,7 @@ const GetBatchByIdInput = z.object({
 
 const GetBatchByNumberInput = z.object({
   batchNumber: z.string().describe('Batch number string as printed on the product (e.g. LOT-2026-JW-042)'),
+  barcode: z.string().optional().describe('Optional product barcode to narrow results to a single product'),
 });
 
 const CreateBatchInput = z.object({
@@ -32,8 +33,8 @@ export function registerBatchTools(server: McpServer, client: Client) {
     'get_batch_by_number',
     'Find batches by batch number (as printed on the product). May return multiple results if different products share the same batch number string.',
     GetBatchByNumberInput.shape,
-    async ({ batchNumber }: z.infer<typeof GetBatchByNumberInput>) => {
-      const result = await client.batches.getByBatchNumber(batchNumber);
+    async ({ batchNumber, barcode }: z.infer<typeof GetBatchByNumberInput>) => {
+      const result = await client.batches.getByBatchNumber(batchNumber, barcode);
       return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
     },
   );

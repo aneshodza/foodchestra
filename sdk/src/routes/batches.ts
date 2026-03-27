@@ -9,8 +9,10 @@ export function batchRoutes(get: GetFn, post: PostFn) {
       post<Batch>('/batches', input),
     getById: (id: string) =>
       get<Batch>(`/batches/${id}`),
-    getByBatchNumber: (batchNumber: string) =>
-      get<Batch[]>(`/batches/by-number/${encodeURIComponent(batchNumber)}`),
+    getByBatchNumber: (batchNumber: string, barcode?: string) =>
+      get<Batch[]>(
+        `/batches/by-number/${encodeURIComponent(batchNumber)}${barcode ? `?barcode=${encodeURIComponent(barcode)}` : ''}`,
+      ),
     getSupplyChain: (id: string) =>
       get<SupplyChain>(`/batches/${id}/supply-chain`),
   };

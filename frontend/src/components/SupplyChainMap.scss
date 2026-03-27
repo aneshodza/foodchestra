@@ -1,0 +1,75 @@
+@import '../styles/variables/colours';
+@import '../styles/variables/breakpoints';
+
+.supply-chain-map {
+  &__container {
+    width: 100%;
+    height: 400px;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    border: 1px solid $colour-border;
+
+    @include respond-up(md) {
+      height: 500px;
+    }
+  }
+
+  &__status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 400px;
+    background-color: $colour-background;
+    border: 1px solid $colour-border;
+    border-radius: 0.5rem;
+    color: $colour-text-secondary;
+
+    @include respond-up(md) {
+      height: 500px;
+    }
+  }
+
+  // ── Custom marker pin ──────────────────────────────────────────────────────
+  &__marker {
+    position: relative;
+    width: 36px;
+    height: 36px;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgb(0 0 0 / 30%);
+    background-color: $colour-primary;
+
+    .material-icons {
+      transform: rotate(45deg);
+      font-size: 18px;
+      color: $colour-surface;
+      line-height: 1;
+    }
+
+    &--farmer     { background-color: #4caf50; }
+    &--processor  { background-color: #1976d2; }
+    &--distributor { background-color: #f57c00; }
+    &--warehouse  { background-color: #7b1fa2; }
+    &--retailer   { background-color: #c62828; }
+  }
+
+  &__popup-party-type {
+    display: inline-block;
+    font-size: 0.75rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.25rem;
+    background-color: $colour-primary-light;
+    color: $colour-surface;
+    margin-left: 0.25rem;
+    text-transform: capitalize;
+  }
+
+  &__popup-detail {
+    font-size: 0.85rem;
+    color: $colour-text-secondary;
+    margin: 0.15rem 0 0;
+  }
+}
