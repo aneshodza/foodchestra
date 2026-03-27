@@ -21,7 +21,7 @@ const sampleScan: repo.Scan = {
   id: 'uuid-abc-123',
   scan_result: '1234567890123',
   scan_type: 'barcode',
-  scanned_at: new Date('2026-03-27T10:00:00Z'),
+  scanned_at: '2026-03-27T10:00:00Z',
   metadata: {},
 };
 
