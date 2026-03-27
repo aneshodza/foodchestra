@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
+import { ScanMode } from '../../types';
 import './ScannerView.scss';
 
 interface ScannerViewProps {
   onScanSuccess: (decodedText: string) => void;
   onScanError?: (errorMessage: string) => void;
-  mode?: 'qr' | 'barcode';
+  mode?: ScanMode;
 }
 
 const ScannerView = ({ onScanSuccess, onScanError, mode = 'qr' }: ScannerViewProps) => {
@@ -24,7 +25,7 @@ const ScannerView = ({ onScanSuccess, onScanError, mode = 'qr' }: ScannerViewPro
   const boxHeight = mode === 'qr' ? qrBoxHeight : barcodeBoxHeight;
 
   useEffect(() => {
-    // Create instance
+    let isMounted = true;
     const scanner = new Html5Qrcode('reader');
     scannerRef.current = scanner;
 
@@ -48,25 +49,32 @@ const ScannerView = ({ onScanSuccess, onScanError, mode = 'qr' }: ScannerViewPro
         await scanner.start(
           { facingMode: 'environment' },
           config,
-          (decodedText) => {
+          async (decodedText) => {
             if (cooldownRef.current) return;
             
             cooldownRef.current = true;
             setIsCooldown(true);
-            onScanSuccess(decodedText);
+
+            // Stop the camera immediately on success
+            try {
+              if (scanner.isScanning) {
+                await scanner.stop();
+              }
+            } catch (err) {
+              console.warn('Failed to stop scanner on success:', err);
+            }
             
-            // 2-second cooldown to prevent double scans
-            setTimeout(() => {
-              cooldownRef.current = false;
-              setIsCooldown(false);
-            }, 2000);
+            onScanSuccess(decodedText);
           },
           (errorMessage) => {
             if (onScanError) onScanError(errorMessage);
           }
         );
       } catch (err) {
-        console.error('Failed to start scanner:', err);
+        // If it failed to start because it was unmounted mid-start, ignore it
+        if (isMounted) {
+          console.error('Failed to start scanner:', err);
+        }
       }
     };
 
@@ -74,11 +82,26 @@ const ScannerView = ({ onScanSuccess, onScanError, mode = 'qr' }: ScannerViewPro
 
     // Cleanup on unmount
     return () => {
-      if (scannerRef.current) {
-        scannerRef.current.stop().catch((err) => {
-          console.error('Failed to stop scanner during cleanup:', err);
-        });
-      }
+      isMounted = false;
+      const cleanup = async () => {
+        if (scannerRef.current) {
+          try {
+            // Give it a small moment if it's currently starting up
+            // This helps avoid race conditions where stop() is called before start() finishes
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            const state = scannerRef.current.getState();
+            // States from Html5QrcodeScannerState: SCANNING = 2, PAUSED = 3
+            if (state === 2 || state === 3) {
+              await scannerRef.current.stop();
+            }
+          } catch (err) {
+            // Ignore errors that happen during unmount
+            console.warn('Silent failure during scanner cleanup:', err);
+          }
+        }
+      };
+      cleanup();
     };
   }, [mode, onScanSuccess, onScanError, boxWidth, boxHeight, fps]);
 
