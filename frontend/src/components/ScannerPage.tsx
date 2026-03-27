@@ -35,9 +35,11 @@ const ScannerPage = () => {
     } else {
       const gs1 = parseGs1QrCode(text);
       if (gs1) {
-        navigate(`/products/${encodeURIComponent(gs1.barcode)}`, {
-          state: { batchNumber: gs1.batchNumber, expiryDate: gs1.expiryDate },
-        });
+        const params = new URLSearchParams();
+        if (gs1.batchNumber) params.set('batchNumber', gs1.batchNumber);
+        if (gs1.expiryDate) params.set('expiryDate', gs1.expiryDate);
+        const query = params.toString() ? `?${params.toString()}` : '';
+        navigate(`/products/${encodeURIComponent(gs1.barcode)}${query}`);
       } else {
         setQrError('Could not read QR code. Is this a valid GS1 code?');
       }
