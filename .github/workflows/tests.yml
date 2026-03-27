@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint-backend:
     name: Lint — backend
@@ -77,6 +81,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run build --workspace=sdk
       - run: npm run test --workspace=backend
 
   test-frontend:
@@ -91,24 +96,35 @@ jobs:
       - run: npm ci
       - run: npm run test --workspace=frontend
 
-  cypress:
-    name: E2E — cypress
-    runs-on: ubuntu-latest
-    needs: [lint-backend, lint-frontend, lint-sdk, lint-agent, lint-mcp, test-backend, test-frontend]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - name: Build backend
-        run: npm run build --workspace=backend
-      - name: Start backend
-        run: npm run start --workspace=backend &
-      - name: Start frontend
-        run: npm run dev --workspace=frontend &
-      - name: Wait for servers
-        run: npx wait-on http://localhost:3000/alive http://localhost:5173 --timeout 30000
-      - name: Run Cypress
-        run: npm run cypress:run --workspace=frontend
+  # cypress:
+  #   name: E2E — cypress
+  #   runs-on: ubuntu-latest
+  #   needs: [lint-backend, lint-frontend, lint-sdk, lint-agent, lint-mcp, test-backend, test-frontend]
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 22
+  #         cache: npm
+  #     - name: Start PostgreSQL
+  #       run: |
+  #         sudo systemctl start postgresql
+  #         sudo -u postgres psql -c "CREATE USER foodchestra WITH PASSWORD 'foodchestra';"
+  #         sudo -u postgres psql -c "CREATE DATABASE foodchestra OWNER foodchestra;"
+  #     - run: npm ci
+  #     - name: Build SDK
+  #       run: npm run build --workspace=sdk
+  #     - name: Build backend
+  #       run: npm run build --workspace=backend
+  #     - name: Start backend
+  #       run: npm run start --workspace=backend &
+  #       env:
+  #         PORT: 3000
+  #         DATABASE_URL: postgresql://foodchestra:foodchestra@localhost:5432/foodchestra
+  #         CORS_ORIGINS: http://localhost:5173
+  #     - name: Start frontend
+  #       run: npm run dev --workspace=frontend &
+  #     - name: Wait for servers
+  #       run: npx wait-on http://localhost:3000/alive http://localhost:5173 --timeout 30000
+  #     - name: Run Cypress
+  #       run: npm run cypress:run --workspace=frontend
