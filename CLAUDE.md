@@ -253,13 +253,19 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 - `src/migrations/001_create_recalls.sql` — `recalls` table schema
 - `src/migrations/002_create_scans.sql` — `scans` table (uuid PK, scan_result, scan_type enum, scanned_at, metadata JSONB); indexes on result + type
 - `src/routers/scans.router.ts` — `POST /scans` → logs a scan anonymously; requires `scanResult` + `scanType`, optional `metadata`; returns created `Scan` row
-- `src/repositories/scans.repository.ts` — `ScansRepository.create()` + `findRecent(limit)` + `Scan`/`CreateScanInput`/`ScanType` types
+- `src/repositories/scans.repository.ts` — `ScansRepository.create()` + `findRecent(limit)`; types re-exported from `@foodchestra/sdk`
+- `src/migrations/004_create_supply_chain.sql` — `party_type` enum, `parties`, `party_locations`, `batches`, `supply_chains`, `supply_chain_nodes`, `supply_chain_edges` tables
+- `src/migrations/005_seed_supply_chain.sql` — realistic Swiss seed data: 5 parties, 6 locations, 1 batch (Jowa Ruchbrot `7610807001024`), 5 nodes, 4 edges (two farmers merging into Jowa → Coop Pratteln → Coop Zürich HB)
+- `src/routers/parties.router.ts` — `GET /parties` (all parties) + `GET /parties/:id/locations` (locations for a party, 404 if missing)
+- `src/routers/batches.router.ts` — `POST /batches`, `GET /batches/:id`, `GET /batches/by-number/:batchNumber` (array, 404 if none), `GET /batches/:id/supply-chain` (full DAG with nodes+edges, party+location embedded)
+- `src/repositories/supply-chain.repository.ts` — `SupplyChainRepository` with all DB queries for parties, locations, batches, supply chains; types imported from `@foodchestra/sdk`
+- Test files: `parties.router.test.ts` (7 tests) + `batches.router.test.ts` (15 tests)
 - Swagger UI live at `http://localhost:3000/docs`
 - `nodemon.json` — watch mode via `tsx --env-file .env`, run with `npm run dev`
 - `.eslintrc.json` — TypeScript ESLint configured
 - `npm run lint` / `npm run lint:fix` — work from both `backend/` and repo root
 - Tests: Jest + ts-jest + supertest; run with `npm test` (from `backend/`)
-- Test files in `src/__tests__/`: `alive.router.test.ts`, `barcode.test.ts`, `products.router.test.ts`, `recalls.router.test.ts`, `recalls.service.test.ts`, `scans.router.test.ts`
+- Test files in `src/__tests__/`: `alive.router.test.ts`, `barcode.test.ts`, `products.router.test.ts`, `recalls.router.test.ts`, `recalls.service.test.ts`, `scans.router.test.ts`, `parties.router.test.ts`, `batches.router.test.ts`
 - Test pattern: mount router on a bare express app, mock the repository with `jest.mock()`, use `supertest` to fire requests
 
 ## What exists in sdk/
@@ -268,8 +274,13 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 - `src/routes/health.ts` — `AliveResponse` type + `healthRoutes(get)` factory → `{ getAlive }`. Uses `cache: 'no-store'` — health polls must always hit the server (Express ETags cause 304 otherwise, which `res.ok` treats as failure).
 - `src/routes/recalls.ts` — `recallRoutes(get)` factory → `{ getRecalls({ page?, pageSize? }) }`
 - `src/routes/scans.ts` — `scanRoutes(post)` factory → `{ logScan(CreateScanInput) }`
+- `src/routes/parties.ts` — `partyRoutes(get)` factory → `{ getAll(), getLocations(partyId) }`
+- `src/routes/batches.ts` — `batchRoutes(get, post)` factory → `{ create(input), getById(id), getByBatchNumber(batchNumber), getSupplyChain(id) }`
 - `src/types/recalls.ts` — `Recall` + `RecallsResponse` interfaces
-- `src/types/scans.ts` — `Scan`, `CreateScanInput`, `ScanType` interfaces (mirrors BE types)
+- `src/types/scans.ts` — `Scan`, `CreateScanInput`, `ScanType` interfaces
+- `src/types/parties.ts` — `PartyType`, `Party`, `PartyLocation` interfaces
+- `src/types/batches.ts` — `Batch`, `CreateBatchInput`, `SupplyChainEdge`, `SupplyChainNode`, `SupplyChain` interfaces
+- **Backend now depends on `@foodchestra/sdk`** for shared types — repositories import types from there instead of defining them locally
 - `src/external/recallswiss.ts` — `fetchAllRecalls(baseUrl?)`: fetches all pages of the RecallSwiss government API concurrently (batches of 5), deduplicates by `id`, returns `RecallSwissEntry[]`. This is where ALL RecallSwiss HTTP calls live. `RECALLSWISS_DEFAULT_BASE` exported for override.
 - Pattern: all external API HTTP calls go in `src/external/<source>.ts` — centralised fetch layer
 - Adding new route group: create `src/routes/<concern>.ts`, wire into `createClient` in `index.ts`
@@ -283,6 +294,8 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 - `src/tools/health.ts` — wraps `client.health.getAlive()` as `get_alive` tool
 - `src/tools/products.ts` — wraps `client.products.getByBarcode()` as `get_product_by_barcode` tool
 - `src/tools/recalls.ts` — wraps `client.recalls.getRecalls()` as `get_recalls` tool (optional `page`, `pageSize`)
+- `src/tools/parties.ts` — `get_parties` + `get_party_locations` tools
+- `src/tools/batches.ts` — `get_batch_by_id`, `get_batch_by_number`, `get_supply_chain`, `create_batch` tools
 - Pattern for adding tools: create `src/tools/<concern>.ts` exporting `registerXxxTools(server, client)`, call it in `index.ts`
 - `npm run build` (from `mcp/`) — compiles to `dist/` (ESM, NodeNext)
 - `npm run start` — runs the compiled server (stdio, for use with Claude Desktop / agent)
@@ -360,7 +373,8 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 ## Key architectural decisions
 - Monorepo: `backend/`, `frontend/`, `sdk/`, `agent/`, `mcp/`
 - Agent tools call SDK functions directly (MCP is an optional layer on top)
-- Supply chain + cooling chain are fully mocked with faker.js factories
+- Supply chain is a DAG stored as `supply_chain_nodes` + `supply_chain_edges` (adjacency list). Nodes reference `party_locations`; locations reference `parties`. A `batches` table ties a product barcode + batch number to a supply chain. Traverse with recursive CTE from leaf nodes (sources) to the final shelf node.
+- Cooling chain is still to be implemented
 - RecallSwiss: fetched once on startup + every 1h via in-process `node-cron`, stored in the `recalls` DB table. All HTTP fetch logic lives in `sdk/src/external/recallswiss.ts`
 - All external API HTTP calls go in `sdk/src/external/<source>.ts` — centralised fetch layer; BE services import from there
 - DB migrations: plain SQL files in `backend/src/migrations/*.sql`, applied in filename order at server startup via `runMigrations()`
