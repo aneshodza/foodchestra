@@ -3,6 +3,7 @@ import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './swagger';
 import aliveRouter from './routers/alive.router';
+import productsRouter from './routers/products.router';
 
 const app = express();
 
@@ -30,5 +31,6 @@ app.use(express.json());
 
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/alive', aliveRouter);
+app.use('/products', productsRouter);
 
 export default app;
