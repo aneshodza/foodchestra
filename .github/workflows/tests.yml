@@ -2,6 +2,7 @@ name: Tests
 
 on:
   push:
+    branches: [main]
   pull_request:
 
 jobs:
@@ -100,4 +101,13 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run cypress:run --workspace=frontend
+      - name: Build backend
+        run: npm run build --workspace=backend
+      - name: Start backend
+        run: npm run start --workspace=backend &
+      - name: Start frontend
+        run: npm run dev --workspace=frontend &
+      - name: Wait for servers
+        run: npx wait-on http://localhost:3000/alive http://localhost:5173 --timeout 30000
+      - name: Run Cypress
+        run: npm run cypress:run --workspace=frontend

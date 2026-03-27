@@ -18,5 +18,8 @@
     "sdk",
     "agent",
     "mcp"
-  ]
+  ],
+  "devDependencies": {
+    "wait-on": "^9.0.4"
+  }
 }
