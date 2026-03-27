@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { client } from '@foodchestra/sdk';
 import { looksLikeBarcode } from '../utils/barcode';
+import { parseGs1QrCode } from '../utils/gs1';
 import { ScanMode } from '../types';
 import HomeIcon from './shared/HomeIcon';
 import Button from './shared/Button';
@@ -10,6 +11,7 @@ import ScannerView from './shared/ScannerView';
 const ScannerPage = () => {
   const [scanning, setScanning] = useState(false);
   const [scanMode, setScanMode] = useState<ScanMode>('qr');
+  const [qrError, setQrError] = useState<string | null>(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const lastQrScan = searchParams.get('scanned');
@@ -17,6 +19,7 @@ const ScannerPage = () => {
   const startScan = (mode: ScanMode) => {
     setScanMode(mode);
     setScanning(true);
+    setQrError(null);
   };
 
   const handleScanSuccess = (text: string) => {
@@ -30,8 +33,14 @@ const ScannerPage = () => {
         navigate(`/?scanned=${encodeURIComponent(text)}`);
       }
     } else {
-      // TODO: IMPLEMENT QR code handling
-      alert('TODO: IMPLEMENT');
+      const gs1 = parseGs1QrCode(text);
+      if (gs1) {
+        navigate(`/products/${encodeURIComponent(gs1.barcode)}`, {
+          state: { batchNumber: gs1.batchNumber, expiryDate: gs1.expiryDate },
+        });
+      } else {
+        setQrError('Could not read QR code. Is this a valid GS1 code?');
+      }
     }
   };
 
@@ -67,6 +76,12 @@ const ScannerPage = () => {
                       />
                     </div>
                   </div>
+                  {qrError && (
+                    <div className="alert alert-danger mt-3 py-2 px-3 d-flex align-items-center gap-2">
+                      <span className="material-icons">error_outline</span>
+                      <span>{qrError}</span>
+                    </div>
+                  )}
                   {lastQrScan && (
                     <div className="alert alert-info mt-3 py-2 px-3 d-flex align-items-center gap-2">
                       <span className="material-icons">qr_code_2</span>

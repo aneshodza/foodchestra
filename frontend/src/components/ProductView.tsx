@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useLocation, Link } from 'react-router-dom';
 import { client } from '@foodchestra/sdk';
 import type { Product } from '@foodchestra/sdk';
 import Button from './shared/Button';
@@ -7,6 +7,9 @@ import './ProductView.scss';
 
 const ProductView = () => {
   const { barcode } = useParams<{ barcode: string }>();
+  const { state } = useLocation();
+  const prefillBatchNumber: string | null = (state as { batchNumber?: string } | null)?.batchNumber ?? null;
+  const prefillExpiryDate: string | null = (state as { expiryDate?: string } | null)?.expiryDate ?? null;
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

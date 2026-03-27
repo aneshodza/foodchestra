@@ -17,8 +17,13 @@ vi.mock('../components/shared/ScannerView', () => ({
     <>
       <button onClick={() => onScanSuccess('12345678')}>Mock Scanner</button>
       <button onClick={() => onScanSuccess('not-a-barcode')}>Mock Scanner Invalid</button>
+      <button onClick={() => onScanSuccess('https://id.gs1.org/01/09506000134352/10/BATCH1/17/260131')}>Mock GS1 Scanner</button>
     </>
   ),
+}));
+
+vi.mock('../utils/gs1', () => ({
+  parseGs1QrCode: vi.fn(),
 }));
 
 global.alert = vi.fn();
@@ -87,6 +92,9 @@ describe('ScannerPage', () => {
 
   it('logs the scan type as qr when scanning in QR mode', async () => {
     const { client } = await import('@foodchestra/sdk');
+    const { parseGs1QrCode } = await import('../utils/gs1');
+    vi.mocked(parseGs1QrCode).mockReturnValue(null);
+
     renderWithRouter();
     fireEvent.click(screen.getByRole('button', { name: 'Scan QR Code' }));
     fireEvent.click(screen.getByText('Mock Scanner'));
@@ -98,18 +106,32 @@ describe('ScannerPage', () => {
     );
   });
 
-  it('shows the TODO alert when a QR scan succeeds', () => {
+  it('navigates to product page after a valid GS1 QR scan', async () => {
+    const { parseGs1QrCode } = await import('../utils/gs1');
+    vi.mocked(parseGs1QrCode).mockReturnValue({
+      barcode: '9506000134352',
+      batchNumber: 'BATCH1',
+      expiryDate: '260131',
+    });
+
     renderWithRouter();
     fireEvent.click(screen.getByRole('button', { name: 'Scan QR Code' }));
     fireEvent.click(screen.getByText('Mock Scanner'));
-    expect(global.alert).toHaveBeenCalledWith('TODO: IMPLEMENT');
+
+    await waitFor(() => expect(screen.getByText(/Fetching product details/i)).toBeInTheDocument());
   });
 
-  it('does not navigate to a product page after a QR scan', () => {
+  it('shows an error when QR scan is not a valid GS1 code', async () => {
+    const { parseGs1QrCode } = await import('../utils/gs1');
+    vi.mocked(parseGs1QrCode).mockReturnValue(null);
+
     renderWithRouter();
     fireEvent.click(screen.getByRole('button', { name: 'Scan QR Code' }));
     fireEvent.click(screen.getByText('Mock Scanner'));
-    expect(screen.queryByText(/Fetching product details/i)).not.toBeInTheDocument();
+
+    await waitFor(() =>
+      expect(screen.getByText(/Could not read QR code/i)).toBeInTheDocument(),
+    );
   });
 
   it('shows the scan result inline when a barcode scan does not look like a barcode', async () => {
