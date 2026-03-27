@@ -320,19 +320,22 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 - Vite + React 18 + TypeScript (ES2022, `react-jsx` — no React import needed in components)
 - Bootstrap 5 + Material Icons loaded globally via `src/App.scss`
 - `src/components/shared/` — reusable components: Button (variant prop), HomeIcon, BackendStatus, ScannerView; all new shared UI goes here
+- `src/components/ScannerPage.tsx` — scan entry point: QR / Barcode buttons → `ScannerView` → navigates to ProductView on barcode scan; `?scanned=` fallback for non-barcode results; QR mode is a TODO stub
+- `src/components/ProductView.tsx` — product detail page at `/products/:barcode`; fetches via SDK, shows nutri-score, image, ingredients, quantity, stores
+- `src/utils/barcode.ts` — `looksLikeBarcode(text)`: 7+ digit guard used to validate scan results before navigation
 - `src/styles/variables/_colours.scss` — brand/neutral/semantic colour tokens; `_breakpoints.scss` — BS5-compatible breakpoints + `respond-up()` mixin
 - SCSS convention: BEM class names, no inline styles, no magic numbers — always use variables
 - `src/types/index.ts` — barrel re-export; `src/types/scanner.ts` — `ScanMode = 'qr' | 'barcode'`
 - Scanner: uses `html5-qrcode`. Configuration (FPS, ROI dimensions) managed via `.env` (`VITE_SCANNER_FPS`, `VITE_SCANNER_QR_BOX_*`, `VITE_SCANNER_BARCODE_BOX_*`). Instance must be stopped on unmount.
-- `App.tsx` — scan entry point: QR / Barcode buttons → `ScannerView` in scanning mode → result shown as info alert; Cancel button exits scanning
+- `App.tsx` — pure router shell: `BrowserRouter` with routes for `/` (ScannerPage), `/products/:barcode` (ProductView), and catch-all redirect
 - `.stylelintrc.json` — enforces SCSS variable/mixin/class naming; run with `npm run lint:scss`
 - `.eslintrc.json` — TS + React + react-hooks rules; `npm run lint` / `npm run lint:fix`
 - Dev server: `npm run dev` (from `frontend/`) — Vite on port 5173
 - Build: `npm run build` (type-check + Vite prod build)
 - Tests: Vitest + jsdom + `@testing-library/react`; run with `npm test` (from `frontend/`)
 - `src/setupTests.ts` — imports `@testing-library/jest-dom`; wired into `vite.config.ts` via `setupFiles`
-- Test pattern: mock all external deps with `vi.mock`; use `vi.hoisted()` when mocks are needed inside the factory (e.g. class constructor mocks like `html5-qrcode`)
-- Test files in `src/__tests__/`: `Button.test.tsx`, `BackendStatus.test.tsx`, `ScannerView.test.tsx`, `App.test.tsx`
+- Test pattern: mock all external deps with `vi.mock`; use `vi.hoisted()` when mocks are needed inside the factory (e.g. class constructor mocks like `html5-qrcode`); wrap components that use router hooks in `MemoryRouter` + `Routes`
+- Test files in `src/__tests__/`: `barcode.test.ts`, `Button.test.tsx`, `BackendStatus.test.tsx`, `ScannerView.test.tsx`, `ScannerPage.test.tsx`, `ProductView.test.tsx`, `App.test.tsx`
 
 ## npm scripts
 - `npm run dev` (from `backend/`) — starts BE dev server with hot reload (port 3000)
@@ -387,6 +390,17 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 3. Complaint filing
 4. AI agent chat (LangGraph)
 5. MCP, auth hardening, Cypress, coverage reports
+
+## Product Details View (feature/product-details)
+- `react-router-dom` added to the frontend; `App.tsx` is now a pure router shell (`BrowserRouter` + `Routes`).
+- `src/components/ScannerPage.tsx` — extracted from `App.tsx`; owns all scan state, navigation logic, and the `?scanned=` fallback display.
+- `src/components/ProductView.tsx` — new page at `/products/:barcode`; calls `client.products.getByBarcode()` on mount; shows nutri-score, image, ingredients, quantity, stores; handles loading/not-found/error states; has stub buttons for "Report Issue" and "Trace Journey".
+- `src/utils/barcode.ts` — `looksLikeBarcode(text)`: accepts 7+ digit strings (EAN-8/13, UPC-A); used to guard navigation in `ScannerPage`.
+- Scan routing rules: barcode mode → navigate to `/products/:barcode` if `looksLikeBarcode`, else show inline via `?scanned=`; QR mode → `alert('TODO: IMPLEMENT')` (stub).
+- `ScannerView` refactored: extracted `stopScanner()` helper used consistently on success, on unmount, and when unmounted mid-start; removed the old 500 ms artificial delay.
+- SDK rebuilt after `scans` route was missing from the ESM dist — always run `npm run build --workspace=sdk` after changing `sdk/src/`.
+- Test count: 27 → 61 (7 test files). New files: `barcode.test.ts` (11 tests), `ScannerPage.test.tsx` (12 tests). Expanded: `ProductView.test.tsx` (13 tests), `ScannerView.test.tsx` (9 tests), `App.test.tsx` trimmed to 2 routing smoke tests.
+- LSP shows false-positive TS errors for `toBeInTheDocument` / module paths — all 61 tests pass; these are a tsconfig path resolution artefact in the language server, not real errors.
 
 ## Product Caching
 - OpenFoodFacts product data is now cached in the PostgreSQL `products` table.
