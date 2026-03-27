@@ -236,15 +236,23 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 - `mcp/` is scaffolded — see details below
 - `agent/` is scaffolded and running — see details below
 - `docker-compose.yml` — Postgres 16-alpine; `docker compose up -d` to start
-- Next step: wire up the core scan→result flow (DB migrations, OpenFoodFacts fetch, product endpoint)
+- Next step: wire up the core scan→result flow (complaints, supply chain, cooling chain)
 
 ## What exists in backend/
-- `src/server.ts` — starts express on `PORT` (default 3000)
+- `src/server.ts` — runs migrations, fires initial recall sync, starts hourly cron, then starts Express on `PORT` (default 3000)
 - `src/app.ts` — mounts all routers and swagger UI
 - `src/swagger.ts` — swagger-jsdoc config; auto-picks up `@openapi` JSDoc from `src/routers/*.ts` at startup
 - `src/routers/alive.router.ts` — `GET /alive` → `200 { status: 'ok' }`, swagger-documented
+- `src/routers/products.router.ts` — `GET /products/:barcode` → fetches OpenFoodFacts, returns normalised product or `{ found: false }`
+- `src/routers/recalls.router.ts` — `GET /recalls?page=&pageSize=` → paginated list of recalls from DB
+- `src/repositories/recalls.repository.ts` — `upsertRecalls()` (bulk ON CONFLICT upsert) + `getRecalls()` (paginated)
+- `src/services/recalls.service.ts` — calls `fetchAllRecalls()` from SDK, maps entries to DB rows, upserts
+- `src/cron/recalls.cron.ts` — `node-cron` hourly schedule (`0 * * * *`), calls `fetchAndStoreRecalls()`
+- `src/db.ts` — pg `Pool` singleton using `DATABASE_URL`
+- `src/migrate.ts` — reads `src/migrations/*.sql` in order and runs them at startup
+- `src/migrations/001_create_recalls.sql` — `recalls` table schema
 - Swagger UI live at `http://localhost:3000/docs`
-- `nodemon.json` — watch mode via `tsx`, run with `npm run dev`
+- `nodemon.json` — watch mode via `tsx --env-file .env`, run with `npm run dev`
 - `.eslintrc.json` — TypeScript ESLint configured
 - `npm run lint` / `npm run lint:fix` — work from both `backend/` and repo root
 
@@ -252,15 +260,22 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 - `src/index.ts` — exports `createClient(config)` factory + default `client` (reads `FOODCHESTRA_API_URL`, falls back to `http://localhost:3000`)
 - `src/client.ts` — `makeHttpHelpers(baseUrl)` returns typed `get(path, options?)` / `post` helpers. `get` accepts optional `{ cache?: RequestCache }` to override browser caching per-call.
 - `src/routes/health.ts` — `AliveResponse` type + `healthRoutes(get)` factory → `{ getAlive }`. Uses `cache: 'no-store'` — health polls must always hit the server (Express ETags cause 304 otherwise, which `res.ok` treats as failure).
+- `src/routes/recalls.ts` — `recallRoutes(get)` factory → `{ getRecalls({ page?, pageSize? }) }`
+- `src/types/recalls.ts` — `Recall` + `RecallsResponse` interfaces
+- `src/external/recallswiss.ts` — `fetchAllRecalls(baseUrl?)`: fetches all pages of the RecallSwiss government API concurrently (batches of 5), deduplicates by `id`, returns `RecallSwissEntry[]`. This is where ALL RecallSwiss HTTP calls live. `RECALLSWISS_DEFAULT_BASE` exported for override.
+- Pattern: all external API HTTP calls go in `src/external/<source>.ts` — centralised fetch layer
 - Adding new route group: create `src/routes/<concern>.ts`, wire into `createClient` in `index.ts`
 - Dual build: `npm run build` runs two `tsc` passes → `dist/cjs/` (CommonJS, for Node/MCP) and `dist/esm/` (ESM, for Vite/FE). `package.json` `exports` field picks the right one automatically.
 - FE uses it as a workspace dep: `"@foodchestra/sdk": "*"` in `frontend/package.json` — npm workspaces symlinks it. Vite picks up the ESM build via `exports["import"]`.
+- **SDK is not tested** — only FE and BE have test suites; SDK logic is covered by BE tests via mocks.
 
 ## What exists in mcp/
 - Uses `@modelcontextprotocol/sdk` (official Anthropic npm package) with `McpServer` + `StdioServerTransport`
 - `src/index.ts` — creates `McpServer`, instantiates the SDK client via `createClient`, registers all tools, connects stdio transport
-- `src/tools/health.ts` — exports `healthToolDefinitions` (array of tool schemas) + `healthToolHandlers(client)` (map of name→handler); wraps `client.health.getAlive()` as `get_alive` tool
-- Pattern for adding tools: create `src/tools/<concern>.ts` with a definitions array + handlers factory, spread both into `index.ts` — mirrors how SDK adds route groups
+- `src/tools/health.ts` — wraps `client.health.getAlive()` as `get_alive` tool
+- `src/tools/products.ts` — wraps `client.products.getByBarcode()` as `get_product_by_barcode` tool
+- `src/tools/recalls.ts` — wraps `client.recalls.getRecalls()` as `get_recalls` tool (optional `page`, `pageSize`)
+- Pattern for adding tools: create `src/tools/<concern>.ts` exporting `registerXxxTools(server, client)`, call it in `index.ts`
 - `npm run build` (from `mcp/`) — compiles to `dist/` (ESM, NodeNext)
 - `npm run start` — runs the compiled server (stdio, for use with Claude Desktop / agent)
 - Reads `FOODCHESTRA_API_URL` env var, falls back to `http://localhost:3000`
@@ -315,6 +330,7 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 - MCP is scaffolded and builds cleanly — extend as SDK routes grow
 - Auth (CASL + Passport + JWT) can be stubbed initially, filled in after core loop works
 - LangGraph: single `FoodAgent` class now, clean enough to add more agents later
+- **Only FE and BE are tested** — SDK, MCP, and agent have no test suites (intentional)
 
 ## CI
 - `.github/workflows/tests.yml` — runs on push to `main` and on PRs (not on every branch push, to avoid double-runs)
@@ -329,8 +345,11 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 - Monorepo: `backend/`, `frontend/`, `sdk/`, `agent/`, `mcp/`
 - Agent tools call SDK functions directly (MCP is an optional layer on top)
 - Supply chain + cooling chain are fully mocked with faker.js factories
-- RecallSwiss: fetched every 1h via in-process cron, stored in DB (not fetched on demand)
-- OpenFoodFacts + RecallSwiss responses cached 24h in a DB table with `validated_at`
+- RecallSwiss: fetched once on startup + every 1h via in-process `node-cron`, stored in the `recalls` DB table. All HTTP fetch logic lives in `sdk/src/external/recallswiss.ts`
+- All external API HTTP calls go in `sdk/src/external/<source>.ts` — centralised fetch layer; BE services import from there
+- DB migrations: plain SQL files in `backend/src/migrations/*.sql`, applied in filename order at server startup via `runMigrations()`
+- Use `||` not `??` for env var fallbacks — `??` doesn't catch empty-string values from `.env`
+- `nodemon.json` uses `tsx --env-file .env` to load env vars in dev
 
 ## Priority order
 1. Core happy path: scan barcode → fetch OpenFoodFacts → show nutri score + ingredients + recalls + complaints
