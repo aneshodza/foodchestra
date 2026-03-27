@@ -1,4 +1,7 @@
-CREATE TYPE party_type AS ENUM ('farmer', 'processor', 'distributor', 'warehouse', 'retailer');
+DO $$ BEGIN
+  CREATE TYPE party_type AS ENUM ('farmer', 'processor', 'distributor', 'warehouse', 'retailer');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 CREATE TABLE IF NOT EXISTS parties (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
