@@ -16,7 +16,8 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
     "@foodchestra/sdk": "*",
-    "@modelcontextprotocol/sdk": "^1.10.2"
+    "@modelcontextprotocol/sdk": "^1.10.2",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^7.0.0",
