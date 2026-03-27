@@ -251,6 +251,9 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 - `src/db.ts` — pg `Pool` singleton using `DATABASE_URL`
 - `src/migrate.ts` — reads `src/migrations/*.sql` in order and runs them at startup
 - `src/migrations/001_create_recalls.sql` — `recalls` table schema
+- `src/migrations/002_create_scans.sql` — `scans` table (uuid PK, scan_result, scan_type enum, scanned_at, metadata JSONB); indexes on result + type
+- `src/routers/scans.router.ts` — `POST /scans` → logs a scan anonymously; requires `scanResult` + `scanType`, optional `metadata`; returns created `Scan` row
+- `src/repositories/scans.repository.ts` — `ScansRepository.create()` + `findRecent(limit)` + `Scan`/`CreateScanInput`/`ScanType` types
 - Swagger UI live at `http://localhost:3000/docs`
 - `nodemon.json` — watch mode via `tsx --env-file .env`, run with `npm run dev`
 - `.eslintrc.json` — TypeScript ESLint configured
@@ -301,7 +304,9 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 - `src/components/shared/` — reusable components: Button (variant prop), HomeIcon, BackendStatus, ScannerView; all new shared UI goes here
 - `src/styles/variables/_colours.scss` — brand/neutral/semantic colour tokens; `_breakpoints.scss` — BS5-compatible breakpoints + `respond-up()` mixin
 - SCSS convention: BEM class names, no inline styles, no magic numbers — always use variables
-- Scanner: uses `html5-qrcode`. Configuration (FPS, ROI dimensions) managed via `.env`. Instance must be stopped on unmount.
+- `src/types/index.ts` — barrel re-export; `src/types/scanner.ts` — `ScanMode = 'qr' | 'barcode'`
+- Scanner: uses `html5-qrcode`. Configuration (FPS, ROI dimensions) managed via `.env` (`VITE_SCANNER_FPS`, `VITE_SCANNER_QR_BOX_*`, `VITE_SCANNER_BARCODE_BOX_*`). Instance must be stopped on unmount.
+- `App.tsx` — scan entry point: QR / Barcode buttons → `ScannerView` in scanning mode → result shown as info alert; Cancel button exits scanning
 - `.stylelintrc.json` — enforces SCSS variable/mixin/class naming; run with `npm run lint:scss`
 - `.eslintrc.json` — TS + React + react-hooks rules; `npm run lint` / `npm run lint:fix`
 - Dev server: `npm run dev` (from `frontend/`) — Vite on port 5173
