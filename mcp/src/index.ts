@@ -5,6 +5,8 @@ import { registerHealthTools } from './tools/health.js';
 import { registerProductTools } from './tools/products.js';
 import { registerRecallTools } from './tools/recalls.js';
 import { registerScanTools } from './tools/scans.js';
+import { registerPartyTools } from './tools/parties.js';
+import { registerBatchTools } from './tools/batches.js';
 
 const apiUrl = process.env['FOODCHESTRA_API_URL'] ?? 'http://localhost:3000';
 const client = createClient({ baseUrl: apiUrl });
@@ -18,7 +20,8 @@ registerHealthTools(server, client);
 registerProductTools(server, client);
 registerRecallTools(server, client);
 registerScanTools(server, client);
-// Add new tool groups here as SDK routes grow
+registerPartyTools(server, client);
+registerBatchTools(server, client);
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
