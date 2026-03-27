@@ -387,3 +387,11 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 3. Complaint filing
 4. AI agent chat (LangGraph)
 5. MCP, auth hardening, Cypress, coverage reports
+
+## Product Caching
+- OpenFoodFacts product data is now cached in the PostgreSQL `products` table.
+- `GET /products/:barcode` checks the database before fetching from OpenFoodFacts.
+- Cache TTL is set to 24 hours (`CACHE_TTL_MS = 24 * 60 * 60 * 1000`).
+- If a product is not found or is older than 24 hours, it is fetched from OpenFoodFacts and updated in the database via `upsertProduct()`.
+- Migration `003_create_products.sql` added the `products` table with a numeric `id` (SERIAL), `barcode` (UNIQUE), and JSONB for `ingredients`.
+- `products.repository.ts` handles DB interaction, returning the internal `id` on upserts.
