@@ -1,0 +1,23 @@
+@import '../styles/variables/colours';
+@import '../styles/variables/breakpoints';
+
+.report-issue-page {
+  &__card {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  &__category-select {
+    cursor: pointer;
+  }
+
+  &__description {
+    resize: vertical;
+    min-height: 100px;
+  }
+
+  &__char-hint {
+    color: $colour-text-secondary;
+    font-size: 0.8rem;
+  }
+}

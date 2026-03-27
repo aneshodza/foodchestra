@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import BackendStatus from './components/shared/BackendStatus';
 import ScannerPage from './components/ScannerPage';
 import ProductView from './components/ProductView';
+import ReportIssuePage from './components/ReportIssuePage';
 
 function App() {
   return (
@@ -10,6 +11,7 @@ function App() {
       <Routes>
         <Route path="/" element={<ScannerPage />} />
         <Route path="/products/:barcode" element={<ProductView />} />
+        <Route path="/products/:barcode/report" element={<ReportIssuePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

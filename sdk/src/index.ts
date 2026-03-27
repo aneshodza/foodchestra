@@ -5,6 +5,7 @@ import { recallRoutes } from './routes/recalls.js';
 import { scanRoutes } from './routes/scans.js';
 import { partyRoutes } from './routes/parties.js';
 import { batchRoutes } from './routes/batches.js';
+import { reportRoutes } from './routes/reports.js';
 
 export { makeHttpHelpers } from './client.js';
 export * from './routes/health.js';
@@ -13,6 +14,7 @@ export * from './routes/recalls.js';
 export * from './routes/scans.js';
 export * from './routes/parties.js';
 export * from './routes/batches.js';
+export * from './routes/reports.js';
 export * from './types/index.js';
 export * from './external/recallswiss.js';
 
@@ -30,6 +32,7 @@ export function createClient(config: SdkConfig) {
     scans: scanRoutes(post),
     parties: partyRoutes(get),
     batches: batchRoutes(get, post),
+    reports: reportRoutes(get, post),
     _http: { get, post }, // escape hatch for one-off calls
   };
 }
