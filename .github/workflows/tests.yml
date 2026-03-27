@@ -103,6 +103,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Build SDK
+        run: npm run build --workspace=sdk
       - name: Build backend
         run: npm run build --workspace=backend
       - name: Start backend
