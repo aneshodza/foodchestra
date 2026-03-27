@@ -1,11 +1,14 @@
 import { Router, Request, Response } from 'express';
 import { isValidBarcode } from '../utils/barcode';
+import { getProductByBarcode, upsertProduct } from '../repositories/products.repository';
 
 const router = Router();
 
 const OFF_BASE =
   process.env['OPENFOODFACTS_BASE_URL'] ||
   'https://world.openfoodfacts.org/api/v0/product';
+
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 /**
  * @openapi
@@ -18,6 +21,7 @@ const OFF_BASE =
  *       Fetches product data from OpenFoodFacts for the given barcode (EAN-8,
  *       EAN-13, UPC-A). Returns a normalised product shape or `found: false`
  *       when the barcode is not in the OpenFoodFacts database.
+ *       Results are cached locally for 24 hours.
  *     parameters:
  *       - in: path
  *         name: barcode
@@ -54,6 +58,37 @@ router.get('/:barcode', async (req: Request, res: Response) => {
     return;
   }
 
+  // 1. Check Cache
+  try {
+    const cached = await getProductByBarcode(barcode);
+    if (cached) {
+      const isFresh = Date.now() - new Date(cached.last_validated_at).getTime() < CACHE_TTL_MS;
+      if (isFresh) {
+        res.status(200).json({
+          found: true,
+          product: {
+            id: cached.id,
+            barcode: cached.barcode,
+            name: cached.name,
+            brands: cached.brands,
+            stores: cached.stores,
+            countries: cached.countries,
+            quantity: cached.quantity,
+            nutriscoreGrade: cached.nutriscore_grade,
+            ingredientsText: cached.ingredients_text,
+            ingredients: cached.ingredients,
+            imageUrl: cached.image_url,
+          },
+        });
+        return;
+      }
+    }
+  } catch (err) {
+    console.error('Failed to read from cache:', err);
+    // Continue to fetch from OFF if cache fails
+  }
+
+  // 2. Fetch from OpenFoodFacts
   let offData: unknown;
   try {
     const offRes = await fetch(`${OFF_BASE}/${barcode}.json`);
@@ -75,20 +110,44 @@ router.get('/:barcode', async (req: Request, res: Response) => {
   }
 
   const p = raw.product;
+  const productData = {
+    barcode,
+    name: (p['product_name'] as string) ?? null,
+    brands: (p['brands'] as string) ?? null,
+    stores: (p['stores'] as string) ?? null,
+    countries: (p['countries'] as string) ?? null,
+    quantity: (p['quantity'] as string) ?? null,
+    nutriscoreGrade: (p['nutriscore_grade'] as string) ?? null,
+    ingredientsText: (p['ingredients_text'] as string) ?? null,
+    ingredients: (p['ingredients'] as unknown[]) ?? [],
+    imageUrl: (p['image_url'] as string) ?? null,
+  };
+
+  // 3. Update Cache
+  let productId: number | undefined;
+  try {
+    productId = await upsertProduct({
+      barcode: productData.barcode,
+      name: productData.name,
+      brands: productData.brands,
+      stores: productData.stores,
+      countries: productData.countries,
+      quantity: productData.quantity,
+      nutriscore_grade: productData.nutriscoreGrade,
+      ingredients_text: productData.ingredientsText,
+      ingredients: productData.ingredients,
+      image_url: productData.imageUrl,
+    });
+  } catch (err) {
+    console.error('Failed to update cache:', err);
+    // Don't fail the request if cache update fails
+  }
 
   res.status(200).json({
     found: true,
     product: {
-      barcode,
-      name: p['product_name'] ?? null,
-      brands: p['brands'] ?? null,
-      stores: p['stores'] ?? null,
-      countries: p['countries'] ?? null,
-      quantity: p['quantity'] ?? null,
-      nutriscoreGrade: p['nutriscore_grade'] ?? null,
-      ingredientsText: p['ingredients_text'] ?? null,
-      ingredients: p['ingredients'] ?? [],
-      imageUrl: p['image_url'] ?? null,
+      id: productId,
+      ...productData,
     },
   });
 });
