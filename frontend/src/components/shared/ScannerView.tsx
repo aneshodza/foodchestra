@@ -15,7 +15,7 @@ const ScannerView = ({ onScanSuccess, onScanError, mode = 'qr' }: ScannerViewPro
   const [isCooldown, setIsCooldown] = useState(false);
 
   // Load configuration from environment variables
-  const fps = Number(import.meta.env.VITE_SCANNER_FPS) || 10;
+  const fps = Number(import.meta.env.VITE_SCANNER_FPS) || 15;
   const qrBoxWidth = Number(import.meta.env.VITE_SCANNER_QR_BOX_WIDTH) || 250;
   const qrBoxHeight = Number(import.meta.env.VITE_SCANNER_QR_BOX_HEIGHT) || 250;
   const barcodeBoxWidth = Number(import.meta.env.VITE_SCANNER_BARCODE_BOX_WIDTH) || 300;
@@ -47,16 +47,19 @@ const ScannerView = ({ onScanSuccess, onScanError, mode = 'qr' }: ScannerViewPro
     const config = {
       fps,
       qrbox: { width: boxWidth, height: boxHeight },
-      aspectRatio: 1.333333,
-      formatsToSupport: mode === 'qr' 
-        ? [Html5QrcodeSupportedFormats.QR_CODE] 
+      aspectRatio: mode === 'barcode' ? 1.777778 : 1.333333,
+      formatsToSupport: mode === 'qr'
+        ? [Html5QrcodeSupportedFormats.QR_CODE]
         : [
             Html5QrcodeSupportedFormats.CODE_128,
             Html5QrcodeSupportedFormats.EAN_13,
             Html5QrcodeSupportedFormats.EAN_8,
             Html5QrcodeSupportedFormats.UPC_A,
             Html5QrcodeSupportedFormats.UPC_E,
-          ]
+          ],
+      experimentalFeatures: {
+        useBarCodeDetectorIfSupported: true,
+      },
     };
 
     const startScanner = async () => {
