@@ -258,13 +258,18 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 - `nodemon.json` — watch mode via `tsx --env-file .env`, run with `npm run dev`
 - `.eslintrc.json` — TypeScript ESLint configured
 - `npm run lint` / `npm run lint:fix` — work from both `backend/` and repo root
+- Tests: Jest + ts-jest + supertest; run with `npm test` (from `backend/`)
+- Test files in `src/__tests__/`: `alive.router.test.ts`, `barcode.test.ts`, `products.router.test.ts`, `recalls.router.test.ts`, `recalls.service.test.ts`, `scans.router.test.ts`
+- Test pattern: mount router on a bare express app, mock the repository with `jest.mock()`, use `supertest` to fire requests
 
 ## What exists in sdk/
 - `src/index.ts` — exports `createClient(config)` factory + default `client` (reads `FOODCHESTRA_API_URL`, falls back to `http://localhost:3000`)
 - `src/client.ts` — `makeHttpHelpers(baseUrl)` returns typed `get(path, options?)` / `post` helpers. `get` accepts optional `{ cache?: RequestCache }` to override browser caching per-call.
 - `src/routes/health.ts` — `AliveResponse` type + `healthRoutes(get)` factory → `{ getAlive }`. Uses `cache: 'no-store'` — health polls must always hit the server (Express ETags cause 304 otherwise, which `res.ok` treats as failure).
 - `src/routes/recalls.ts` — `recallRoutes(get)` factory → `{ getRecalls({ page?, pageSize? }) }`
+- `src/routes/scans.ts` — `scanRoutes(post)` factory → `{ logScan(CreateScanInput) }`
 - `src/types/recalls.ts` — `Recall` + `RecallsResponse` interfaces
+- `src/types/scans.ts` — `Scan`, `CreateScanInput`, `ScanType` interfaces (mirrors BE types)
 - `src/external/recallswiss.ts` — `fetchAllRecalls(baseUrl?)`: fetches all pages of the RecallSwiss government API concurrently (batches of 5), deduplicates by `id`, returns `RecallSwissEntry[]`. This is where ALL RecallSwiss HTTP calls live. `RECALLSWISS_DEFAULT_BASE` exported for override.
 - Pattern: all external API HTTP calls go in `src/external/<source>.ts` — centralised fetch layer
 - Adding new route group: create `src/routes/<concern>.ts`, wire into `createClient` in `index.ts`
@@ -311,6 +316,10 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 - `.eslintrc.json` — TS + React + react-hooks rules; `npm run lint` / `npm run lint:fix`
 - Dev server: `npm run dev` (from `frontend/`) — Vite on port 5173
 - Build: `npm run build` (type-check + Vite prod build)
+- Tests: Vitest + jsdom + `@testing-library/react`; run with `npm test` (from `frontend/`)
+- `src/setupTests.ts` — imports `@testing-library/jest-dom`; wired into `vite.config.ts` via `setupFiles`
+- Test pattern: mock all external deps with `vi.mock`; use `vi.hoisted()` when mocks are needed inside the factory (e.g. class constructor mocks like `html5-qrcode`)
+- Test files in `src/__tests__/`: `Button.test.tsx`, `BackendStatus.test.tsx`, `ScannerView.test.tsx`, `App.test.tsx`
 
 ## npm scripts
 - `npm run dev` (from `backend/`) — starts BE dev server with hot reload (port 3000)
@@ -319,6 +328,7 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 - `npm run lint` (from root) — ESLints all 5 workspaces in parallel
 - `npm run lint:scss` (from root or `frontend/`) — Stylelint SCSS check
 - `npm run lint` / `npm run lint:fix` (from any workspace) — scoped to that workspace only
+- `npm test` (from `backend/`) — Jest; `npm test` (from `frontend/`) — Vitest
 - Adding new BE routers: create `src/routers/<name>.router.ts`, mount in `app.ts`, add `@openapi` JSDoc — swagger picks it up automatically, no other config needed
 
 ## Conventions established

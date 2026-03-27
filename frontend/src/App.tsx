@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { client } from '@foodchestra/sdk';
 import HomeIcon from './components/shared/HomeIcon';
 import Button from './components/shared/Button';
 import BackendStatus from './components/shared/BackendStatus';
@@ -11,9 +12,15 @@ function App() {
   const [scanMode, setScanMode] = useState<ScanMode>('qr');
 
   const startScan = (mode: ScanMode) => {
-    setLastScan(null); // Clear previous scan result
+    setLastScan(null);
     setScanMode(mode);
     setScanning(true);
+  };
+
+  const handleScanSuccess = (text: string) => {
+    setLastScan(text);
+    setScanning(false);
+    client.scans.logScan({ scanResult: text, scanType: scanMode }).catch(console.error);
   };
 
   return (
@@ -31,22 +38,22 @@ function App() {
               <p className="card-text text-secondary mb-4">
                 Track your food&apos;s journey from farm to shelf.
               </p>
-              
+
               {!scanning ? (
                 <div className="d-grid gap-2">
                   <div className="row g-2">
                     <div className="col-6">
-                      <Button 
-                        label="Scan QR Code" 
+                      <Button
+                        label="Scan QR Code"
                         variant="primary"
-                        onClick={() => startScan('qr')} 
+                        onClick={() => startScan('qr')}
                       />
                     </div>
                     <div className="col-6">
-                      <Button 
-                        label="Scan Barcode" 
+                      <Button
+                        label="Scan Barcode"
                         variant="secondary"
-                        onClick={() => startScan('barcode')} 
+                        onClick={() => startScan('barcode')}
                       />
                     </div>
                   </div>
@@ -66,17 +73,14 @@ function App() {
                       Scanning {scanMode === 'qr' ? 'QR Code' : 'Barcode'}...
                     </span>
                   </div>
-                  <ScannerView 
+                  <ScannerView
                     mode={scanMode}
-                    onScanSuccess={(text) => {
-                      setLastScan(text);
-                      setScanning(false);
-                    }} 
+                    onScanSuccess={handleScanSuccess}
                   />
-                  <Button 
-                    label="Cancel" 
+                  <Button
+                    label="Cancel"
                     variant="danger"
-                    onClick={() => setScanning(false)} 
+                    onClick={() => setScanning(false)}
                   />
                 </div>
               )}
