@@ -1,6 +1,7 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import SupplyChainMap from '../components/SupplyChainMap';
+import type { CoolingChainEdgeData } from '@foodchestra/sdk';
 
 const { mockPolylineInstance, mockFitBounds } = vi.hoisted(() => {
   const mockPolylineInstance = {
@@ -44,6 +45,8 @@ vi.mock('recharts', () => ({
   YAxis: () => null,
   Tooltip: () => null,
   CartesianGrid: () => null,
+  ReferenceLine: () => null,
+  ReferenceArea: () => null,
 }));
 
 vi.mock('@foodchestra/sdk', () => ({
@@ -116,13 +119,20 @@ const sampleCoolingData = [
       { id: 'r-1', edgeId: 'edge-1', recordedAt: '2026-01-10T13:00:00Z', celsius: 4.1 },
       { id: 'r-2', edgeId: 'edge-1', recordedAt: '2026-01-10T23:00:00Z', celsius: 14.1 },
     ],
+    anomaly: {
+      hasBreach: true,
+      averageCelsius: 9.1,
+      upperBound: 11.1,
+      lowerBound: 7.1,
+      thresholdCelsius: 2,
+    },
   },
 ];
 
 async function setupMocks(
   batches = [sampleBatch],
   supplyChain = sampleSupplyChain,
-  cooling = sampleCoolingData,
+  cooling: CoolingChainEdgeData[] = sampleCoolingData,
 ) {
   const { client } = await import('@foodchestra/sdk');
   (client.batches.getByBatchNumber as ReturnType<typeof vi.fn>).mockResolvedValue(batches);
@@ -314,13 +324,34 @@ describe('SupplyChainMap', () => {
       render(<SupplyChainMap barcode="7610800749004" batchNumber="LOT-2026-JW-042" />);
 
       await waitFor(() => {
-        expect(L.polyline).toHaveBeenCalledTimes(1);
+        // 2 calls per edge: 1 transparent hit-area + 1 visible line
+        expect(L.polyline).toHaveBeenCalledTimes(2);
+        // sampleCoolingData has hasBreach: true → breach colour
         expect(L.polyline).toHaveBeenCalledWith(
           [
             [nodeA.location.latitude, nodeA.location.longitude],
             [nodeB.location.latitude, nodeB.location.longitude],
           ],
           expect.objectContaining({ color: '#dc3545' }),
+        );
+      });
+    });
+
+    it('uses blue colour for an edge with no breach', async () => {
+      const L = (await import('leaflet')).default;
+      await setupMocks(undefined, undefined, [
+        {
+          ...sampleCoolingData[0],
+          anomaly: { hasBreach: false, averageCelsius: 4.0, upperBound: 6.0, lowerBound: 2.0, thresholdCelsius: 2 },
+        },
+      ]);
+
+      render(<SupplyChainMap barcode="7610800749004" batchNumber="LOT-2026-JW-042" />);
+
+      await waitFor(() => {
+        expect(L.polyline).toHaveBeenCalledWith(
+          expect.any(Array),
+          expect.objectContaining({ color: '#0d6efd' }),
         );
       });
     });
@@ -414,7 +445,7 @@ describe('SupplyChainMap', () => {
       await setupMocks(
         [sampleBatch],
         sampleSupplyChain,
-        [{ edgeId: 'edge-1', fromNodeId: 'node-a', toNodeId: 'node-b', readings: [] }],
+        [{ edgeId: 'edge-1', fromNodeId: 'node-a', toNodeId: 'node-b', readings: [], anomaly: null }],
       );
 
       render(<SupplyChainMap barcode="7610800749004" batchNumber="LOT-2026-JW-042" />);

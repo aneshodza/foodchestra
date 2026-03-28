@@ -13,6 +13,7 @@ const ProductView = () => {
   const [batchInput, setBatchInput] = useState(urlBatchNumber || '');
   const [product, setProduct] = useState<Product | null>(null);
   const [reports, setReports] = useState<ReportsResponse | null>(null);
+  const [coolingBreach, setCoolingBreach] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,7 +26,8 @@ const ProductView = () => {
     Promise.allSettled([
       client.products.getByBarcode(barcode),
       client.reports.getReports(barcode),
-    ]).then(([productResult, reportsResult]) => {
+      client.products.getCoolingStatus(barcode),
+    ]).then(([productResult, reportsResult, coolingResult]) => {
       if (productResult.status === 'fulfilled') {
         const res = productResult.value;
         if (res.found && res.product) {
@@ -44,6 +46,11 @@ const ProductView = () => {
         console.error('Failed to fetch reports:', reportsResult.reason);
         // Reports are secondary — degrade gracefully
       }
+
+      if (coolingResult.status === 'fulfilled') {
+        setCoolingBreach(coolingResult.value?.potentialBreach ?? false);
+      }
+      // Cooling status is optional — degrade gracefully on failure
 
       setLoading(false);
     });
@@ -87,6 +94,13 @@ const ProductView = () => {
         <div className="alert alert-danger d-flex align-items-center gap-2 mb-3">
           <span className="material-icons">warning</span>
           <span>Multiple users have reported issues with this product recently.</span>
+        </div>
+      )}
+
+      {coolingBreach && (
+        <div className="alert alert-warning d-flex align-items-center gap-2 mb-3">
+          <span className="material-icons">thermostat</span>
+          <span>A potential cooling chain breach was detected for this product. Quality may be affected.</span>
         </div>
       )}
 

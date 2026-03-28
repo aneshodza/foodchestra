@@ -23,6 +23,20 @@ const router = Router();
  *           format: date-time
  *         celsius:
  *           type: number
+ *     CoolingChainAnomaly:
+ *       type: object
+ *       nullable: true
+ *       properties:
+ *         hasBreach:
+ *           type: boolean
+ *         averageCelsius:
+ *           type: number
+ *         upperBound:
+ *           type: number
+ *         lowerBound:
+ *           type: number
+ *         thresholdCelsius:
+ *           type: number
  *     CoolingChainEdgeData:
  *       type: object
  *       properties:
@@ -39,6 +53,8 @@ const router = Router();
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/CoolingChainReading'
+ *         anomaly:
+ *           $ref: '#/components/schemas/CoolingChainAnomaly'
  */
 
 /**
