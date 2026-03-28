@@ -19,7 +19,7 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Batch for a Jowa Ruchbrot (Swiss barcode)
 INSERT INTO batches (id, product_barcode, batch_number) VALUES
-  ('c1000000-0000-0000-0000-000000000001', '7610807001024', 'LOT-2026-JW-042')
+  ('c1000000-0000-0000-0000-000000000001', '7610800749004', 'LOT-2026-JW-042')
 ON CONFLICT (id) DO NOTHING;
 
 -- Supply chain for that batch
