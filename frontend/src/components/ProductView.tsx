@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { client } from '@foodchestra/sdk';
 import type { Product, ReportsResponse } from '@foodchestra/sdk';
+import { useSetAgentContext } from '../context/AgentContext';
 import Button from './shared/Button';
 import './ProductView.scss';
 
@@ -12,6 +13,11 @@ const ProductView = () => {
   const urlBatchNumber = searchParams.get('batchNumber');
   const [batchInput, setBatchInput] = useState(urlBatchNumber || '');
   const [product, setProduct] = useState<Product | null>(null);
+  useSetAgentContext(
+    product
+      ? `Page: Product Detail. Barcode: ${barcode}. Batch number: ${urlBatchNumber || 'not provided'}. Product: ${product.name || 'unknown'}. Nutri-score: ${product.nutriscoreGrade || 'unknown'}.`
+      : `Page: Product Detail. Barcode: ${barcode}. Product is still loading.`,
+  );
   const [reports, setReports] = useState<ReportsResponse | null>(null);
   const [coolingBreach, setCoolingBreach] = useState(false);
   const [loading, setLoading] = useState(true);

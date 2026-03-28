@@ -5,3 +5,4 @@ export * from './parties.js';
 export * from './batches.js';
 export * from './reports.js';
 export * from './cooling-chain.js';
+export * from './chat.js';

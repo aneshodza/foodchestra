@@ -16,4 +16,17 @@
 body {
   background-color: colours.$colour-background;
   color: colours.$colour-text-primary;
+  padding-bottom: 5rem;
+}
+
+// ── Agent bar (sticky bottom) ─────────────────────────────────────────────────
+.agent-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: colours.$colour-surface;
+  border-top: 1px solid colours.$colour-border;
+  padding: 0.75rem 0;
+  z-index: 1000;
 }

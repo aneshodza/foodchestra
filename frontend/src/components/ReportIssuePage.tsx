@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { client } from '@foodchestra/sdk';
 import type { ReportCategory } from '@foodchestra/sdk';
+import { useSetAgentContext } from '../context/AgentContext';
 import Button from './shared/Button';
 import './ReportIssuePage.scss';
 
@@ -19,6 +20,7 @@ const CATEGORIES = Object.keys(CATEGORY_LABELS) as ReportCategory[];
 
 const ReportIssuePage = () => {
   const { barcode } = useParams<{ barcode: string }>();
+  useSetAgentContext(`Page: Report Issue. The user is filing a complaint for barcode: ${barcode}.`);
   const [category, setCategory] = useState<ReportCategory>('damaged_packaging');
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);

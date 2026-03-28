@@ -558,3 +558,20 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 - FE product: `ProductView` fetches `getCoolingStatus` in parallel; shows `alert-warning` with thermostat icon when `potentialBreach: true`
 - MCP: `get_product_cooling_status` tool added to `mcp/src/tools/products.ts`
 - Tests: backend 105 → 113 (4 new cooling-status endpoint tests in `products.router.test.ts`, 4 new anomaly computation tests in `cooling-chain.repository.test.ts`); frontend 132 → 136 (3 new cooling breach/no-breach/failure tests in `ProductView.test.tsx`, updated polyline colour + recharts mocks)
+
+## Concrete Chatbot Input Interaction (feature/concrete-chatbot-input-interaction)
+- **Chat proxy**: `POST /chat` added to backend — proxies `{ message, context, history }` to the agent service (`AGENT_URL` env var, default `http://localhost:3001`). Returns `{ response, toolSteps }`. Agent is never exposed directly to the FE. 400 on missing message, 502 on agent failure.
+- **SDK**: `sdk/src/types/chat.ts` — `ChatRequest` + `ChatResponse` (includes `toolSteps: string[]`); `sdk/src/routes/chat.ts` — `chatRoutes(post)` → `sendMessage(message, context?, history?)`; wired into `createClient` as `client.chat`.
+- **Conversation history**: `AgentInput` stores `ConversationMessage[]` in state. Each send formats prior turns as `USER: ...` / `THE AGENT: ...` strings and passes them as `history[]` to the agent. Agent prepends `[Conversation history: ...]` + `[Context: ...]` blocks to the human message so the model has full context on every turn.
+- **Tool tracing**: `FoodAgent.invoke` returns `{ response, toolSteps }` — toolSteps are tool names extracted from intermediate `AIMessage.tool_calls` in the LangGraph message trace. Frontend logs `[AgentInput] Tools used: [...]` for every response. Agent also logs full message trace on each invoke for debugging.
+- **Agent model**: updated default from `gemini-2.0-flash-lite` (discontinued) to `gemini-2.0-flash` in `.env`, `.env.example`, and hardcoded fallback.
+- **Agent system prompt**: rewritten to be proactive, markdown-first, human-friendly (no raw IDs/UUIDs), explicit about using tools directly (never pseudocode), using context block without re-asking the user, and never claiming an action is complete without a successful tool response.
+- **MCP hardening**: all 8 tool handlers now wrap calls in try/catch and return `{ isError: true, content: [{ text: "Error: ..." }] }` so the agent can read and react to errors instead of blind retrying.
+- **MCP bug fixes**:
+  - `create_product_report`: auto-calls `getByBarcode` first to ensure product is cached (BE requires it); `z.enum` replaced with `z.string` + manual validation in handler returning the exact valid values with human↔API mapping — fixes Zod swallowing the error message before the handler runs.
+  - `get_supply_chain` + `get_party_locations`: dropped `z.string().uuid()` → `z.string()` — Zod v4 tightened UUID validation to enforce version bits; seeded IDs (e.g. `c1000000-0000-0000-0000-000000000001`) use version `0` and fail the new regex.
+  - `get_batch_by_number` description updated: explicitly tells the model to use the returned `id` with `get_supply_chain` and not try to create a new batch.
+  - `scanType` in scans tool changed from `z.union([z.literal(...)])` to `z.enum([...])`.
+- **BE request/response logging**: middleware in `app.ts` logs `→ METHOD /path [body]` on every request and `← METHOD /path STATUS [body]` on every `res.json` call — essential for diagnosing MCP→BE traffic.
+- **Agent startup log**: `[FoodAgent] MCP tools loaded: N — [tool names]` logged after `mcpClient.getTools()` to confirm tool registration on every restart.
+- **`AGENT_URL` env var** added to `backend/.env.example`.
