@@ -7,6 +7,7 @@ import type { ScanMode } from '../types';
 import HomeIcon from './shared/HomeIcon';
 import Button from './shared/Button';
 import ScannerView from './shared/ScannerView';
+import AgentInput from './shared/AgentInput';
 
 const ScannerPage = () => {
   const [scanning, setScanning] = useState(false);
@@ -111,6 +112,11 @@ const ScannerPage = () => {
               )}
             </div>
           </div>
+        </div>
+      </div>
+      <div className="row justify-content-center mt-4">
+        <div className="col-12 col-md-6">
+          <AgentInput />
         </div>
       </div>
     </main>
