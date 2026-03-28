@@ -9,17 +9,27 @@ interface ScannerViewProps {
   mode?: ScanMode;
 }
 
+const DEFAULT_FPS = 15;
+const DEFAULT_QR_BOX_SIZE = 250;
+const DEFAULT_BARCODE_BOX_WIDTH = 300;
+const DEFAULT_BARCODE_BOX_HEIGHT = 150;
+// html5-qrcode internal state values
+const SCANNER_STATE_SCANNING = 2;
+const SCANNER_STATE_PAUSED = 3;
+const ASPECT_RATIO_16_9 = 1.777778;
+const ASPECT_RATIO_4_3 = 1.333333;
+
 const ScannerView = ({ onScanSuccess, onScanError, mode = 'qr' }: ScannerViewProps) => {
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const cooldownRef = useRef(false);
   const [isCooldown, setIsCooldown] = useState(false);
 
   // Load configuration from environment variables
-  const fps = Number(import.meta.env.VITE_SCANNER_FPS) || 15;
-  const qrBoxWidth = Number(import.meta.env.VITE_SCANNER_QR_BOX_WIDTH) || 250;
-  const qrBoxHeight = Number(import.meta.env.VITE_SCANNER_QR_BOX_HEIGHT) || 250;
-  const barcodeBoxWidth = Number(import.meta.env.VITE_SCANNER_BARCODE_BOX_WIDTH) || 300;
-  const barcodeBoxHeight = Number(import.meta.env.VITE_SCANNER_BARCODE_BOX_HEIGHT) || 150;
+  const fps = Number(import.meta.env.VITE_SCANNER_FPS) || DEFAULT_FPS;
+  const qrBoxWidth = Number(import.meta.env.VITE_SCANNER_QR_BOX_WIDTH) || DEFAULT_QR_BOX_SIZE;
+  const qrBoxHeight = Number(import.meta.env.VITE_SCANNER_QR_BOX_HEIGHT) || DEFAULT_QR_BOX_SIZE;
+  const barcodeBoxWidth = Number(import.meta.env.VITE_SCANNER_BARCODE_BOX_WIDTH) || DEFAULT_BARCODE_BOX_WIDTH;
+  const barcodeBoxHeight = Number(import.meta.env.VITE_SCANNER_BARCODE_BOX_HEIGHT) || DEFAULT_BARCODE_BOX_HEIGHT;
 
   const boxWidth = mode === 'qr' ? qrBoxWidth : barcodeBoxWidth;
   const boxHeight = mode === 'qr' ? qrBoxHeight : barcodeBoxHeight;
@@ -35,8 +45,7 @@ const ScannerView = ({ onScanSuccess, onScanError, mode = 'qr' }: ScannerViewPro
       scannerRef.current = null; // Prevent any concurrent or subsequent call from entering
       try {
         const state = scanner.getState();
-        // SCANNING = 2, PAUSED = 3
-        if (state === 2 || state === 3) {
+        if (state === SCANNER_STATE_SCANNING || state === SCANNER_STATE_PAUSED) {
           await scanner.stop();
         }
         scanner.clear();
@@ -48,7 +57,7 @@ const ScannerView = ({ onScanSuccess, onScanError, mode = 'qr' }: ScannerViewPro
     const config = {
       fps,
       qrbox: { width: boxWidth, height: boxHeight },
-      aspectRatio: mode === 'barcode' ? 1.777778 : 1.333333,
+      aspectRatio: mode === 'barcode' ? ASPECT_RATIO_16_9 : ASPECT_RATIO_4_3,
       formatsToSupport: mode === 'qr'
         ? [Html5QrcodeSupportedFormats.QR_CODE]
         : [
