@@ -17,6 +17,15 @@ import './SupplyChainMap.scss';
 // Matches $colour-danger in _colours.scss
 const POLYLINE_COLOUR = '#dc3545';
 
+const MARKER_WIDTH = 36;
+const MARKER_HEIGHT = 44;
+const MARKER_ICON_SIZE = 18;
+const MARKER_POPUP_OFFSET = -46;
+const MAP_BOUNDS_PADDING = 40;
+// Switzerland geographic centre
+const DEFAULT_CENTER_LAT = 46.8182;
+const DEFAULT_CENTER_LNG = 8.2275;
+
 const PARTY_TYPE_ICONS: Record<PartyType, string> = {
   farmer: 'agriculture',
   processor: 'factory',
@@ -33,9 +42,9 @@ function createMarkerIcon(partyType: PartyType, isFinal: boolean, isActive: bool
     html: `<div class="supply-chain-map__marker supply-chain-map__marker--${partyType}${dimClass}">
              <span class="material-icons">${iconName}</span>
            </div>`,
-    iconSize: [36, 44],
-    iconAnchor: [18, 44],
-    popupAnchor: [0, -46],
+    iconSize: [MARKER_WIDTH, MARKER_HEIGHT],
+    iconAnchor: [MARKER_ICON_SIZE, MARKER_HEIGHT],
+    popupAnchor: [0, MARKER_POPUP_OFFSET],
   });
 }
 
@@ -75,7 +84,7 @@ function BoundsFitter({ nodes }: { nodes: SupplyChainNode[] }) {
     const bounds: LatLngBoundsExpression = nodes.map(
       (n) => [n.location.latitude, n.location.longitude] as LatLngTuple,
     );
-    map.fitBounds(bounds, { padding: [40, 40] });
+    map.fitBounds(bounds, { padding: [MAP_BOUNDS_PADDING, MAP_BOUNDS_PADDING] });
   }, [map, nodes]);
 
   return null;
@@ -255,11 +264,11 @@ export default function SupplyChainMap({ batchNumber, barcode }: SupplyChainMapP
   const nodeById = new Map(supplyChain.nodes.map((n) => [n.id, n]));
   const fromNodeIds = new Set(supplyChain.edges.map((e) => e.fromNodeId));
 
-  // Default centre on Switzerland if no nodes
-  const defaultCenter: LatLngTuple = [46.8182, 8.2275];
+  const defaultCenter: LatLngTuple = [DEFAULT_CENTER_LAT, DEFAULT_CENTER_LNG];
 
   return (
-    <div className="supply-chain-map__container">
+    <div className="supply-chain-map__wrapper">
+      <div className="supply-chain-map__container">
       <MapContainer
         center={defaultCenter}
         zoom={7}
@@ -340,6 +349,39 @@ export default function SupplyChainMap({ batchNumber, barcode }: SupplyChainMapP
           />
         )}
       </MapContainer>
+      </div>
+      <MapLegend />
+    </div>
+  );
+}
+
+const LEGEND_ITEMS: { type: PartyType; icon: string; label: string }[] = [
+  { type: 'farmer',      icon: 'agriculture',    label: 'Farmer'      },
+  { type: 'processor',   icon: 'factory',        label: 'Processor'   },
+  { type: 'distributor', icon: 'local_shipping', label: 'Distributor' },
+  { type: 'warehouse',   icon: 'warehouse',      label: 'Warehouse'   },
+  { type: 'retailer',    icon: 'storefront',     label: 'Retailer'    },
+];
+
+function MapLegend() {
+  return (
+    <div className="supply-chain-map__legend">
+      <div className="supply-chain-map__legend-section">
+        {LEGEND_ITEMS.map(({ type, icon, label }) => (
+          <div key={type} className="supply-chain-map__legend-item">
+            <div className={`supply-chain-map__legend-pin supply-chain-map__legend-pin--${type}`}>
+              <span className="material-icons">{icon}</span>
+            </div>
+            <span className="supply-chain-map__legend-label">{label}</span>
+          </div>
+        ))}
+      </div>
+      <div className="supply-chain-map__legend-section supply-chain-map__legend-section--divider">
+        <div className="supply-chain-map__legend-item">
+          <div className="supply-chain-map__legend-arrow" />
+          <span className="supply-chain-map__legend-label">Transport route — click for temperature chart</span>
+        </div>
+      </div>
     </div>
   );
 }

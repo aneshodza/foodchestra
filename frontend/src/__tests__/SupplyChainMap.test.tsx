@@ -461,6 +461,28 @@ describe('SupplyChainMap', () => {
     });
   });
 
+  describe('legend', () => {
+    it('renders all five party type labels', async () => {
+      await setupMocks();
+      render(<SupplyChainMap barcode="7610800749004" batchNumber="LOT-2026-JW-042" />);
+      await waitFor(() => expect(screen.getByTestId('map-container')).toBeInTheDocument());
+
+      expect(screen.getByText('Farmer')).toBeInTheDocument();
+      expect(screen.getByText('Processor')).toBeInTheDocument();
+      expect(screen.getByText('Distributor')).toBeInTheDocument();
+      expect(screen.getByText('Warehouse')).toBeInTheDocument();
+      expect(screen.getByText('Retailer')).toBeInTheDocument();
+    });
+
+    it('renders the transport route legend item', async () => {
+      await setupMocks();
+      render(<SupplyChainMap barcode="7610800749004" batchNumber="LOT-2026-JW-042" />);
+      await waitFor(() => expect(screen.getByTestId('map-container')).toBeInTheDocument());
+
+      expect(screen.getByText(/Transport route/)).toBeInTheDocument();
+    });
+  });
+
   describe('API calls', () => {
     it('calls getByBatchNumber with the correct barcode and batch number', async () => {
       const client = await setupMocks();

@@ -476,3 +476,11 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 - FE: `SupplyChainMap` fetches cooling chain in parallel with supply chain; polylines now accept an `onClick` prop (handler stored in a `useRef` to avoid recreating polylines on state changes); clicking an edge opens a standalone `<Popup position={midpoint}>` (react-leaflet) with a recharts `LineChart`; gracefully degrades to "No temperature data available" if cooling fetch fails or edge has no readings
 - recharts (`recharts` npm package) added to frontend — used only for the `LineChart` in the edge popup
 - Tests: backend 91 → 105 (9 new in `cooling-chain.router.test.ts`, 13 new in `cooling-chain.repository.test.ts`); frontend 111 → 132 (7 new edge popup + cooling chain tests in `SupplyChainMap.test.tsx`, recharts mocked as `vi.mock('recharts', ...)`)
+
+## Supply Chain Map Legend
+- `SupplyChainMap` now wraps the `MapContainer` in a `supply-chain-map__wrapper` div and renders a `MapLegend` component below the map
+- Legend has two sections separated by a left border divider: party type pins (5 items) + transport route arrow
+- Party type pins are mini versions of the map pin shape (rotated-square), colour-coded via existing `supply-chain-map__marker--<type>` BEM modifier classes — no colour duplication in JS
+- Transport route entry shows a red CSS arrow and the label "Transport route — click for temperature chart"
+- `LEGEND_ITEMS` constant defined at module level (outside the component) — avoids re-creation on render
+- Tests: 2 new tests in `SupplyChainMap.test.tsx` `legend` describe block (all five party labels + route label); frontend 132 → 134
