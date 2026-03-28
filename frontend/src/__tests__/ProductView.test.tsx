@@ -8,6 +8,7 @@ vi.mock('@foodchestra/sdk', () => ({
     products: {
       getByBarcode: vi.fn(),
       getCoolingStatus: vi.fn(),
+      getEnrichment: vi.fn(),
     },
     reports: {
       getReports: vi.fn(),
@@ -49,6 +50,19 @@ function renderProductView(barcode = '12345678', searchParams = '') {
     </MemoryRouter>,
   );
 }
+
+beforeEach(async () => {
+  const { client } = await import('@foodchestra/sdk');
+  (client.products.getEnrichment as ReturnType<typeof vi.fn>).mockResolvedValue({
+    safetyLevel: 'safe',
+    safetyReason: 'No issues detected.',
+    matchedRecalls: [],
+    allergenWarnings: [],
+    sustainabilityNote: '',
+    qualityNote: '',
+  });
+  (client.products.getCoolingStatus as ReturnType<typeof vi.fn>).mockResolvedValue({ potentialBreach: false });
+});
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -463,5 +477,110 @@ describe('ProductView', () => {
       expect(screen.getByText('Test Chocolate')).toBeInTheDocument();
     });
     expect(screen.queryByText(/cooling chain breach/)).not.toBeInTheDocument();
+  });
+
+  describe('AI Enrichment panel', () => {
+    const mockRecall = {
+      id: 6,
+      headerDe: 'Coop ruft die Austern zurück',
+      headerFr: null,
+      headerIt: null,
+      descriptionDe: 'Coop ruft die Austern aufgrund von Noroviren zurück.',
+      metaDe: 'Bern, 8.1.2020',
+      imageUrlDe: null,
+      authorityNameDe: 'Bundesamt für Lebensmittelsicherheit und Veterinärwesen',
+    };
+
+    async function renderLoaded() {
+      const { client } = await import('@foodchestra/sdk');
+      (client.products.getByBarcode as ReturnType<typeof vi.fn>).mockResolvedValue({
+        found: true,
+        product: mockProduct,
+      });
+      (client.reports.getReports as ReturnType<typeof vi.fn>).mockResolvedValue(emptyReports);
+      renderProductView();
+      await waitFor(() => expect(screen.getByText('Test Chocolate')).toBeInTheDocument());
+    }
+
+    it('shows AI Analysis card header', async () => {
+      await renderLoaded();
+      await waitFor(() => expect(screen.getByText('AI Analysis')).toBeInTheDocument());
+    });
+
+    it('shows safe status from enrichment', async () => {
+      await renderLoaded();
+      await waitFor(() => expect(screen.getByText('No Safety Concerns')).toBeInTheDocument());
+    });
+
+    it('shows danger status with matched recall', async () => {
+      const { client } = await import('@foodchestra/sdk');
+      (client.products.getByBarcode as ReturnType<typeof vi.fn>).mockResolvedValue({
+        found: true,
+        product: mockProduct,
+      });
+      (client.reports.getReports as ReturnType<typeof vi.fn>).mockResolvedValue(emptyReports);
+      (client.products.getEnrichment as ReturnType<typeof vi.fn>).mockResolvedValue({
+        safetyLevel: 'danger',
+        safetyReason: 'Active government recall due to Noroviren.',
+        matchedRecalls: [mockRecall],
+        allergenWarnings: ['Shellfish'],
+        sustainabilityNote: '',
+        qualityNote: '',
+      });
+
+      renderProductView();
+
+      await waitFor(() => {
+        expect(screen.getByText('Safety Alert')).toBeInTheDocument();
+        expect(screen.getByText('Active government recall due to Noroviren.')).toBeInTheDocument();
+        expect(screen.getByText('Coop ruft die Austern zurück')).toBeInTheDocument();
+        expect(screen.getByText('Shellfish')).toBeInTheDocument();
+      });
+    });
+
+    it('shows allergen badges', async () => {
+      const { client } = await import('@foodchestra/sdk');
+      (client.products.getByBarcode as ReturnType<typeof vi.fn>).mockResolvedValue({
+        found: true,
+        product: mockProduct,
+      });
+      (client.reports.getReports as ReturnType<typeof vi.fn>).mockResolvedValue(emptyReports);
+      (client.products.getEnrichment as ReturnType<typeof vi.fn>).mockResolvedValue({
+        safetyLevel: 'caution',
+        safetyReason: 'Contains allergens.',
+        matchedRecalls: [],
+        allergenWarnings: ['Gluten', 'Lactose'],
+        sustainabilityNote: 'Low carbon footprint.',
+        qualityNote: 'Good nutriscore.',
+      });
+
+      renderProductView();
+
+      await waitFor(() => {
+        expect(screen.getByText('Gluten')).toBeInTheDocument();
+        expect(screen.getByText('Lactose')).toBeInTheDocument();
+        expect(screen.getByText('Low carbon footprint.')).toBeInTheDocument();
+        expect(screen.getByText('Good nutriscore.')).toBeInTheDocument();
+      });
+    });
+
+    it('shows unavailable message when enrichment fails', async () => {
+      const { client } = await import('@foodchestra/sdk');
+      (client.products.getByBarcode as ReturnType<typeof vi.fn>).mockResolvedValue({
+        found: true,
+        product: mockProduct,
+      });
+      (client.reports.getReports as ReturnType<typeof vi.fn>).mockResolvedValue(emptyReports);
+      (client.products.getEnrichment as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new Error('agent down'),
+      );
+
+      renderProductView();
+
+      await waitFor(() => expect(screen.getByText('Test Chocolate')).toBeInTheDocument());
+      await waitFor(() =>
+        expect(screen.getByText('AI analysis unavailable right now.')).toBeInTheDocument(),
+      );
+    });
   });
 });

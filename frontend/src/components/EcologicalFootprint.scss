@@ -1,0 +1,57 @@
+@use '../styles/variables/colours' as colours;
+
+.ecological-footprint {
+  &__header {
+    background-color: colours.$colour-background;
+    border-bottom: 1px solid colours.$colour-border;
+  }
+
+  &__badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.35em 0.65em;
+
+    &--local {
+      background-color: colours.$colour-success;
+      color: white;
+    }
+
+    &--regional {
+      background-color: colours.$colour-nutriscore-b;
+      color: white;
+    }
+
+    &--national {
+      background-color: colours.$colour-warning;
+      color: colours.$colour-text-primary;
+    }
+
+    &--international {
+      background-color: colours.$colour-danger;
+      color: white;
+    }
+  }
+
+  &__stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: colours.$colour-text-primary;
+    line-height: 1.1;
+
+    &--co2 {
+      color: colours.$colour-success;
+    }
+  }
+
+  &__stat-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  &__disclaimer {
+    font-size: 0.7rem;
+    border-top: 1px solid colours.$colour-border;
+    padding-top: 0.75rem;
+  }
+}
