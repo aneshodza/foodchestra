@@ -4,15 +4,19 @@ export interface Gs1ScanData {
   expiryDate: string | null;
 }
 
+const GTIN_PAD_LENGTH = 14;
+const GTIN_STRIP_MIN_LENGTH = 8;
+const MIN_BARCODE_LENGTH = 7;
+
 function normaliseGtin(raw: string): string | null {
   if (!/^\d+$/.test(raw)) return null;
-  const padded = raw.padStart(14, '0');
+  const padded = raw.padStart(GTIN_PAD_LENGTH, '0');
   let barcode = padded;
-  while (barcode.length > 8 && barcode[0] === '0') {
+  while (barcode.length > GTIN_STRIP_MIN_LENGTH && barcode[0] === '0') {
     barcode = barcode.slice(1);
   }
   // Must meet the same 7+ digit threshold as looksLikeBarcode
-  return barcode.length >= 7 ? barcode : null;
+  return barcode.length >= MIN_BARCODE_LENGTH ? barcode : null;
 }
 
 function buildResult(ais: Map<string, string>): Gs1ScanData | null {
