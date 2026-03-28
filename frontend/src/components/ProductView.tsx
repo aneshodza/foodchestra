@@ -1,13 +1,20 @@
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { client } from '@foodchestra/sdk';
-import type { Product, ReportsResponse } from '@foodchestra/sdk';
+import type { Product, ReportsResponse, EnrichmentResult } from '@foodchestra/sdk';
 import { useSetAgentContext } from '../context/AgentContext';
 import Button from './shared/Button';
 import GlassBlock from './shared/GlassBlock';
 import ReportModal from './shared/ReportModal';
 import SupplyChainMap from './SupplyChainMap';
+import EcologicalFootprint from './EcologicalFootprint';
 import './ProductView.scss';
+
+const SAFETY_CONFIG = {
+  safe: { alertClass: 'alert-success', icon: 'check_circle', label: 'No Safety Concerns' },
+  caution: { alertClass: 'alert-warning', icon: 'warning_amber', label: 'Caution' },
+  danger: { alertClass: 'alert-danger', icon: 'dangerous', label: 'Safety Alert' },
+} as const;
 
 const ProductView = () => {
   const { barcode } = useParams<{ barcode: string }>();
@@ -16,22 +23,26 @@ const ProductView = () => {
   const [batchInput, setBatchInput] = useState(urlBatchNumber || '');
   const [activeBatch, setActiveBatch] = useState(urlBatchNumber || '');
   const [product, setProduct] = useState<Product | null>(null);
-  useSetAgentContext(
-    product
-      ? `Page: Product Detail. Barcode: ${barcode}. Batch number: ${urlBatchNumber || 'not provided'}. Product: ${product.name || 'unknown'}. Nutri-score: ${product.nutriscoreGrade || 'unknown'}.`
-      : `Page: Product Detail. Barcode: ${barcode}. Product is still loading.`,
-  );
   const [reports, setReports] = useState<ReportsResponse | null>(null);
+  const [enrichment, setEnrichment] = useState<EnrichmentResult | null>(null);
+  const [enrichmentLoading, setEnrichmentLoading] = useState(true);
   const [coolingBreach, setCoolingBreach] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
+
+  useSetAgentContext(
+    product
+      ? `Page: Product Detail. Barcode: ${barcode}. Batch number: ${urlBatchNumber || 'not provided'}. Product: ${product.name || 'unknown'}. Nutri-score: ${product.nutriscoreGrade || 'unknown'}. AI safety level: ${enrichment?.safetyLevel ?? 'loading'}. Government recalls: ${enrichment === null ? 'loading' : enrichment.matchedRecalls.length > 0 ? `${enrichment.matchedRecalls.length} active recall(s) found` : 'none'}.`
+      : `Page: Product Detail. Barcode: ${barcode}. Product is still loading.`,
+  );
 
   useEffect(() => {
     if (!barcode) return;
 
     setLoading(true);
     setError(null);
+    setEnrichmentLoading(true);
 
     Promise.allSettled([
       client.products.getByBarcode(barcode),
@@ -52,17 +63,20 @@ const ProductView = () => {
 
       if (reportsResult.status === 'fulfilled') {
         setReports(reportsResult.value);
-      } else {
-        console.error('Failed to fetch reports:', reportsResult.reason);
       }
 
       if (coolingResult.status === 'fulfilled') {
         setCoolingBreach(coolingResult.value?.potentialBreach ?? false);
       }
-      // Cooling status is optional — degrade gracefully on failure
 
       setLoading(false);
     });
+
+    // Enrichment is slow (AI call) — load separately so product card shows immediately
+    client.products.getEnrichment(barcode)
+      .then((result) => setEnrichment(result))
+      .catch((err) => console.error('Enrichment failed:', err))
+      .finally(() => setEnrichmentLoading(false));
   }, [barcode]);
 
   if (loading) {
@@ -91,6 +105,8 @@ const ProductView = () => {
       </div>
     );
   }
+
+  const safetyConfig = enrichment ? SAFETY_CONFIG[enrichment.safetyLevel] : null;
 
   return (
     <div className="product-view">

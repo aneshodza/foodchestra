@@ -1,4 +1,4 @@
-import type { RecallsResponse } from '../types/recalls.js';
+import type { RecallsResponse, ProductRecallsResponse } from '../types/recalls.js';
 
 type GetFn = <T>(path: string, options?: { cache?: RequestCache }) => Promise<T>;
 
@@ -11,5 +11,7 @@ export function recallRoutes(get: GetFn) {
       const qs = query.toString();
       return get<RecallsResponse>(`/recalls${qs ? `?${qs}` : ''}`);
     },
+    getProductRecalls: (barcode: string) =>
+      get<ProductRecallsResponse>(`/products/${encodeURIComponent(barcode)}/recalls`),
   };
 }
