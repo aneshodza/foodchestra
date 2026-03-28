@@ -134,7 +134,30 @@ describe('GET /batches/by-number/:batchNumber', () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual([sampleBatch]);
-    expect(mockFindByBatchNumber).toHaveBeenCalledWith('LOT-2026-JW-042');
+    expect(mockFindByBatchNumber).toHaveBeenCalledWith('LOT-2026-JW-042', undefined);
+  });
+
+  it('filters by barcode when ?barcode= is provided', async () => {
+    mockFindByBatchNumber.mockResolvedValueOnce([sampleBatch]);
+
+    const res = await request(app).get(
+      '/batches/by-number/LOT-2026-JW-042?barcode=7610807001024',
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([sampleBatch]);
+    expect(mockFindByBatchNumber).toHaveBeenCalledWith('LOT-2026-JW-042', '7610807001024');
+  });
+
+  it('returns 404 when barcode filter yields no results', async () => {
+    mockFindByBatchNumber.mockResolvedValueOnce([]);
+
+    const res = await request(app).get(
+      '/batches/by-number/LOT-2026-JW-042?barcode=9999999999999',
+    );
+
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: 'No batches found for this batch number' });
   });
 
   it('returns 404 when no batches match', async () => {

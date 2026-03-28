@@ -54,7 +54,14 @@ export const SupplyChainRepository = {
     return res.rows[0] || null;
   },
 
-  async findByBatchNumber(batchNumber: string): Promise<Batch[]> {
+  async findByBatchNumber(batchNumber: string, barcode?: string): Promise<Batch[]> {
+    if (barcode) {
+      const res = await pool.query(
+        'SELECT id, product_barcode, batch_number, created_at FROM batches WHERE batch_number = $1 AND product_barcode = $2',
+        [batchNumber, barcode],
+      );
+      return res.rows;
+    }
     const res = await pool.query(
       'SELECT id, product_barcode, batch_number, created_at FROM batches WHERE batch_number = $1',
       [batchNumber],

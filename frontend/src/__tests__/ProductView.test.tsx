@@ -34,12 +34,16 @@ const emptyReports = {
   reports: [],
 };
 
-function renderProductView(barcode = '12345678') {
+function renderProductView(barcode = '12345678', searchParams = '') {
   return render(
-    <MemoryRouter initialEntries={[`/products/${barcode}`]}>
+    <MemoryRouter initialEntries={[`/products/${barcode}${searchParams}`]}>
       <Routes>
         <Route path="/" element={<div>Scanner Page</div>} />
         <Route path="/products/:barcode" element={<ProductView />} />
+        <Route
+          path="/products/:barcode/maps/:batchNumber"
+          element={<div data-testid="map-page">Map Page</div>}
+        />
       </Routes>
     </MemoryRouter>,
   );
@@ -241,6 +245,80 @@ describe('ProductView', () => {
     await waitFor(() => expect(screen.getByText('Test Chocolate')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Back'));
     expect(screen.getByText('Scanner Page')).toBeInTheDocument();
+  });
+
+  describe('Trace Journey section', () => {
+    async function renderLoaded(barcode = '12345678', searchParams = '') {
+      const { client } = await import('@foodchestra/sdk');
+      (client.products.getByBarcode as ReturnType<typeof vi.fn>).mockResolvedValue({
+        found: true,
+        product: mockProduct,
+      });
+      renderProductView(barcode, searchParams);
+      await waitFor(() => expect(screen.getByText('Test Chocolate')).toBeInTheDocument());
+    }
+
+    it('shows the Trace Journey label after product loads', async () => {
+      await renderLoaded();
+      expect(screen.getByText('Trace Journey')).toBeInTheDocument();
+    });
+
+    it('renders the batch number input', async () => {
+      await renderLoaded();
+      expect(screen.getByPlaceholderText('Batch number')).toBeInTheDocument();
+    });
+
+    it('input is empty by default when no batchNumber in URL', async () => {
+      await renderLoaded();
+      expect(screen.getByPlaceholderText('Batch number')).toHaveValue('');
+    });
+
+    it('input is pre-filled when batchNumber is in the URL', async () => {
+      await renderLoaded('12345678', '?batchNumber=LOT-2026-JW-042');
+      expect(screen.getByPlaceholderText('Batch number')).toHaveValue('LOT-2026-JW-042');
+    });
+
+    it('input is disabled when batchNumber comes from the URL', async () => {
+      await renderLoaded('12345678', '?batchNumber=LOT-2026-JW-042');
+      expect(screen.getByPlaceholderText('Batch number')).toBeDisabled();
+    });
+
+    it('input is enabled when no batchNumber is in the URL', async () => {
+      await renderLoaded();
+      expect(screen.getByPlaceholderText('Batch number')).not.toBeDisabled();
+    });
+
+    it('journey button is disabled when input is empty', async () => {
+      await renderLoaded();
+      expect(screen.getByRole('button', { name: /route/i })).toBeDisabled();
+    });
+
+    it('journey button is enabled when input has a value', async () => {
+      await renderLoaded('12345678', '?batchNumber=LOT-2026-JW-042');
+      expect(screen.getByRole('button', { name: /route/i })).not.toBeDisabled();
+    });
+
+    it('typing in the input enables the journey button', async () => {
+      await renderLoaded();
+      const input = screen.getByPlaceholderText('Batch number');
+      fireEvent.change(input, { target: { value: 'LOT-001' } });
+      expect(screen.getByRole('button', { name: /route/i })).not.toBeDisabled();
+    });
+
+    it('clicking the journey button navigates to the map page', async () => {
+      await renderLoaded('12345678', '?batchNumber=LOT-2026-JW-042');
+      fireEvent.click(screen.getByRole('button', { name: /route/i }));
+      await waitFor(() => expect(screen.getByTestId('map-page')).toBeInTheDocument());
+    });
+
+    it('navigates to the correct URL with the typed batch number', async () => {
+      await renderLoaded();
+      fireEvent.change(screen.getByPlaceholderText('Batch number'), {
+        target: { value: 'LOT-CUSTOM-001' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /route/i }));
+      await waitFor(() => expect(screen.getByTestId('map-page')).toBeInTheDocument());
+    });
   });
 
   it('shows the Back to Scanner button on error and navigates back', async () => {

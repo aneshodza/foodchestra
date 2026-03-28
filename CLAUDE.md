@@ -257,9 +257,9 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 - `src/migrations/004_create_supply_chain.sql` — `party_type` enum, `parties`, `party_locations`, `batches`, `supply_chains`, `supply_chain_nodes`, `supply_chain_edges` tables
 - `src/migrations/005_seed_supply_chain.sql` — realistic Swiss seed data: 5 parties, 6 locations, 1 batch (Jowa Ruchbrot `7610807001024`), 5 nodes, 4 edges (two farmers merging into Jowa → Coop Pratteln → Coop Zürich HB)
 - `src/routers/parties.router.ts` — `GET /parties` (all parties) + `GET /parties/:id/locations` (locations for a party, 404 if missing)
-- `src/routers/batches.router.ts` — `POST /batches`, `GET /batches/:id`, `GET /batches/by-number/:batchNumber` (array, 404 if none), `GET /batches/:id/supply-chain` (full DAG with nodes+edges, party+location embedded)
-- `src/repositories/supply-chain.repository.ts` — `SupplyChainRepository` with all DB queries for parties, locations, batches, supply chains; types imported from `@foodchestra/sdk`
-- Test files: `parties.router.test.ts` (7 tests) + `batches.router.test.ts` (15 tests)
+- `src/routers/batches.router.ts` — `POST /batches`, `GET /batches/:id`, `GET /batches/by-number/:batchNumber?barcode=` (optional barcode filter, array, 404 if none), `GET /batches/:id/supply-chain` (full DAG with nodes+edges, party+location embedded)
+- `src/repositories/supply-chain.repository.ts` — `SupplyChainRepository` with all DB queries; `findByBatchNumber(batchNumber, barcode?)` accepts optional barcode to narrow to one product
+- Test files: `parties.router.test.ts` (7 tests) + `batches.router.test.ts` (17 tests)
 - Swagger UI live at `http://localhost:3000/docs`
 - `nodemon.json` — watch mode via `tsx --env-file .env`, run with `npm run dev`
 - `.eslintrc.json` — TypeScript ESLint configured
@@ -275,7 +275,7 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 - `src/routes/recalls.ts` — `recallRoutes(get)` factory → `{ getRecalls({ page?, pageSize? }) }`
 - `src/routes/scans.ts` — `scanRoutes(post)` factory → `{ logScan(CreateScanInput) }`
 - `src/routes/parties.ts` — `partyRoutes(get)` factory → `{ getAll(), getLocations(partyId) }`
-- `src/routes/batches.ts` — `batchRoutes(get, post)` factory → `{ create(input), getById(id), getByBatchNumber(batchNumber), getSupplyChain(id) }`
+- `src/routes/batches.ts` — `batchRoutes(get, post)` factory → `{ create(input), getById(id), getByBatchNumber(batchNumber, barcode?), getSupplyChain(id) }`
 - `src/types/recalls.ts` — `Recall` + `RecallsResponse` interfaces
 - `src/types/scans.ts` — `Scan`, `CreateScanInput`, `ScanType` interfaces
 - `src/types/parties.ts` — `PartyType`, `Party`, `PartyLocation` interfaces
@@ -295,7 +295,7 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 - `src/tools/products.ts` — wraps `client.products.getByBarcode()` as `get_product_by_barcode` tool
 - `src/tools/recalls.ts` — wraps `client.recalls.getRecalls()` as `get_recalls` tool (optional `page`, `pageSize`)
 - `src/tools/parties.ts` — `get_parties` + `get_party_locations` tools
-- `src/tools/batches.ts` — `get_batch_by_id`, `get_batch_by_number`, `get_supply_chain`, `create_batch` tools
+- `src/tools/batches.ts` — `get_batch_by_id`, `get_batch_by_number` (optional `barcode` param), `get_supply_chain`, `create_batch` tools
 - Pattern for adding tools: create `src/tools/<concern>.ts` exporting `registerXxxTools(server, client)`, call it in `index.ts`
 - `npm run build` (from `mcp/`) — compiles to `dist/` (ESM, NodeNext)
 - `npm run start` — runs the compiled server (stdio, for use with Claude Desktop / agent)
@@ -321,13 +321,15 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 - Bootstrap 5 + Material Icons loaded globally via `src/App.scss`
 - `src/components/shared/` — reusable components: Button (variant prop), HomeIcon, BackendStatus, ScannerView; all new shared UI goes here
 - `src/components/ScannerPage.tsx` — scan entry point: QR / Barcode buttons → `ScannerView` → navigates to ProductView on barcode scan; `?scanned=` fallback for non-barcode results; QR mode is a TODO stub
-- `src/components/ProductView.tsx` — product detail page at `/products/:barcode`; fetches via SDK, shows nutri-score, image, ingredients, quantity, stores
+- `src/components/ProductView.tsx` — product detail page at `/products/:barcode`; fetches product + reports in parallel; shows nutri-score, image, ingredients, quantity, stores, report warning/count; Trace Journey section with batch number input + navigate button
+- `src/components/SupplyChainMap.tsx` — OpenStreetMap component (react-leaflet v4 + leaflet-arrowheads); props `{ barcode, batchNumber }`; fetches batch then supply chain; renders custom pin markers (color-coded by party type, dim non-final/hover/active opacity) + red directional polylines; auto-fits bounds
+- `src/components/SupplyChainMapPage.tsx` — page wrapper at `/products/:barcode/maps/:batchNumber`; back link preserves `?batchNumber=` on return to ProductView
 - `src/utils/barcode.ts` — `looksLikeBarcode(text)`: 7+ digit guard used to validate scan results before navigation
 - `src/styles/variables/_colours.scss` — brand/neutral/semantic colour tokens; `_breakpoints.scss` — BS5-compatible breakpoints + `respond-up()` mixin
 - SCSS convention: BEM class names, no inline styles, no magic numbers — always use variables
 - `src/types/index.ts` — barrel re-export; `src/types/scanner.ts` — `ScanMode = 'qr' | 'barcode'`
 - Scanner: uses `html5-qrcode`. Configuration (FPS, ROI dimensions) managed via `.env` (`VITE_SCANNER_FPS`, `VITE_SCANNER_QR_BOX_*`, `VITE_SCANNER_BARCODE_BOX_*`). Instance must be stopped on unmount.
-- `App.tsx` — pure router shell: `BrowserRouter` with routes for `/` (ScannerPage), `/products/:barcode` (ProductView), and catch-all redirect
+- `App.tsx` — pure router shell: `BrowserRouter` with routes for `/` (ScannerPage), `/products/:barcode` (ProductView), `/products/:barcode/maps/:batchNumber` (SupplyChainMapPage), `/products/:barcode/report` (ReportIssuePage), and catch-all redirect
 - `.stylelintrc.json` — enforces SCSS variable/mixin/class naming; run with `npm run lint:scss`
 - `.eslintrc.json` — TS + React + react-hooks rules; `npm run lint` / `npm run lint:fix`
 - Dev server: `npm run dev` (from `frontend/`) — Vite on port 5173
@@ -335,7 +337,7 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 - Tests: Vitest + jsdom + `@testing-library/react`; run with `npm test` (from `frontend/`)
 - `src/setupTests.ts` — imports `@testing-library/jest-dom`; wired into `vite.config.ts` via `setupFiles`
 - Test pattern: mock all external deps with `vi.mock`; use `vi.hoisted()` when mocks are needed inside the factory (e.g. class constructor mocks like `html5-qrcode`); wrap components that use router hooks in `MemoryRouter` + `Routes`
-- Test files in `src/__tests__/`: `barcode.test.ts`, `Button.test.tsx`, `BackendStatus.test.tsx`, `ScannerView.test.tsx`, `ScannerPage.test.tsx`, `ProductView.test.tsx`, `App.test.tsx`
+- Test files in `src/__tests__/`: `barcode.test.ts`, `Button.test.tsx`, `BackendStatus.test.tsx`, `ScannerView.test.tsx`, `ScannerPage.test.tsx`, `ProductView.test.tsx`, `App.test.tsx`, `SupplyChainMap.test.tsx`, `SupplyChainMapPage.test.tsx`, `ReportIssuePage.test.tsx`
 
 ## npm scripts
 - `npm run dev` (from `backend/`) — starts BE dev server with hot reload (port 3000)
@@ -431,3 +433,16 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 - `Button.tsx` `variant` type extended with `'outline-danger'` (fixes pre-existing type gap).
 - Test counts: backend 70 tests (9 suites), frontend 73 tests (8 files).
 - **Stretch goals (not yet implemented):** image upload on reports; agent-based spam detection (cross-checks reports, flags fakes before showing warning).
+
+## Supply Chain Map (feature/openmap-integration)
+- `GET /batches/by-number/:batchNumber?barcode=` — new optional `barcode` query param filters results to a single product. Backend `findByBatchNumber(batchNumber, barcode?)` branches SQL accordingly. Swagger doc updated.
+- SDK `getByBatchNumber(batchNumber, barcode?)` appends `?barcode=` to the URL when provided.
+- MCP `get_batch_by_number` tool updated with optional `barcode` field.
+- `SupplyChainMap` component (`react-leaflet` v4 + `leaflet-arrowheads`): fetches batch via barcode+batchNumber filter, then supply chain; renders OpenStreetMap with one `Marker` per node and `Polyline` per edge.
+- Marker styling: `L.divIcon` with rotated-square pin shape; color-coded by party type (farmer=green, processor=blue, distributor=orange, warehouse=purple, retailer=red); Material Icon inside; final stop at full opacity, intermediate stops at 0.75 opacity with hover and popup-open bringing to 1.
+- Polylines are red (`#dc3545`) with arrowheads at end via `leaflet-arrowheads`.
+- `SupplyChainMapPage` at `/products/:barcode/maps/:batchNumber` wraps the map; back link returns to `/products/:barcode?batchNumber=...` preserving the batch number.
+- `ProductView` updated: fetches product + reports via `Promise.allSettled`; Trace Journey section has a batch number input (pre-filled + disabled from `?batchNumber=` URL param) and a route button that navigates to the map page. "Report Issue" navigates to `ReportIssuePage`.
+- Leaflet CSS imported globally in `App.scss`.
+- Test counts: backend 70 → 72 (2 new barcode-filter tests in `batches.router.test.ts`), frontend 111 tests across 10 files (added `SupplyChainMap.test.tsx` 27 tests, `SupplyChainMapPage.test.tsx` 8 tests, +12 Trace Journey tests in `ProductView.test.tsx`).
+- Leaflet/react-leaflet mocking pattern: `vi.hoisted()` for polyline instance + fitBounds spy; mock `MapContainer`/`Marker`/`Popup` as plain divs; mock `useMap` returning the hoisted spy; mock `leaflet-arrowheads` as empty module.

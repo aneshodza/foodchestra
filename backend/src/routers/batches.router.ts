@@ -149,6 +149,12 @@ router.post('/', async (req: Request, res: Response) => {
  *         required: true
  *         schema:
  *           type: string
+ *       - in: query
+ *         name: barcode
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Optional product barcode to narrow results to a single product
  *     responses:
  *       200:
  *         description: Matching batches (may be multiple products with the same batch number)
@@ -163,7 +169,8 @@ router.post('/', async (req: Request, res: Response) => {
  */
 router.get('/by-number/:batchNumber', async (req: Request, res: Response) => {
   try {
-    const batches = await SupplyChainRepository.findByBatchNumber(req.params.batchNumber);
+    const barcode = typeof req.query.barcode === 'string' ? req.query.barcode : undefined;
+    const batches = await SupplyChainRepository.findByBatchNumber(req.params.batchNumber, barcode);
     if (batches.length === 0) {
       res.status(404).json({ error: 'No batches found for this batch number' });
       return;
