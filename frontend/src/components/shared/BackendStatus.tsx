@@ -27,12 +27,12 @@ function BackendStatus() {
   const isUp = status === 'up';
 
   return (
-    <div className={`backend-status alert alert-${isUp ? 'success' : 'danger'} d-flex align-items-center gap-2`} role="status">
+    <div className={`backend-status backend-status--${isUp ? 'up' : 'down'}`} role="status">
       <span className="material-icons backend-status__icon">
         {isUp ? 'check_circle' : 'error'}
       </span>
       <span className="backend-status__label">
-        {isUp ? 'Backend up' : 'Backend down'}
+        {isUp ? 'API online' : 'API offline'}
       </span>
     </div>
   );

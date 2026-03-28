@@ -4,9 +4,10 @@ import { client } from '@foodchestra/sdk';
 import { looksLikeBarcode } from '../utils/barcode';
 import { parseGs1QrCode } from '../utils/gs1';
 import type { ScanMode } from '../types';
-import HomeIcon from './shared/HomeIcon';
 import Button from './shared/Button';
 import ScannerView from './shared/ScannerView';
+import GlassBlock from './shared/GlassBlock';
+import './ScannerPage.scss';
 
 const ScannerPage = () => {
   const [scanning, setScanning] = useState(false);
@@ -47,71 +48,72 @@ const ScannerPage = () => {
   };
 
   return (
-    <main className="container py-5">
-      <div className="row justify-content-center">
-        <div className="col-12 col-md-6">
-          <div className="card shadow-sm">
-            <div className="card-body">
-              <h1 className="card-title d-flex align-items-center gap-2 mb-4">
-                <HomeIcon />
-                Foodchestra
-              </h1>
-              <p className="card-text text-secondary mb-4">
-                Track your food&apos;s journey from farm to shelf.
-              </p>
+    <main className="scanner-page">
+      <div className="scanner-page__content">
+        <GlassBlock className="scanner-page__card">
+          {!scanning ? (
+            <>
+              <div className="scanner-page__hero">
+                <span className="material-icons scanner-page__logo-icon">music_note</span>
+                <h1 className="scanner-page__title">Foodchestra</h1>
+                <p className="scanner-page__tagline">
+                  Every product has a rhythm — here is yours.
+                </p>
+                <p className="scanner-page__subtitle">
+                  Ready to scan the product that&apos;s ready to sing?
+                </p>
+              </div>
 
-              {!scanning ? (
-                <div className="d-grid gap-2">
-                  <div className="row g-2">
-                    <div className="col-6">
-                      <Button
-                        label="Scan QR Code"
-                        variant="primary"
-                        onClick={() => startScan('qr')}
-                      />
-                    </div>
-                    <div className="col-6">
-                      <Button
-                        label="Scan Barcode"
-                        variant="secondary"
-                        onClick={() => startScan('barcode')}
-                      />
-                    </div>
-                  </div>
-                  {qrError && (
-                    <div className="alert alert-danger mt-3 py-2 px-3 d-flex align-items-center gap-2">
-                      <span className="material-icons">error_outline</span>
-                      <span>{qrError}</span>
-                    </div>
-                  )}
-                  {lastQrScan && (
-                    <div className="alert alert-info mt-3 py-2 px-3 d-flex align-items-center gap-2">
-                      <span className="material-icons">qr_code_2</span>
-                      <span>Scanned: <strong>{lastQrScan}</strong></span>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="d-flex flex-column gap-3">
-                  <div className="text-center mb-2">
-                    <span className="badge bg-primary">
-                      Scanning {scanMode === 'qr' ? 'QR Code' : 'Barcode'}...
-                    </span>
-                  </div>
-                  <ScannerView
-                    mode={scanMode}
-                    onScanSuccess={handleScanSuccess}
-                  />
-                  <Button
-                    label="Cancel"
-                    variant="danger"
-                    onClick={() => setScanning(false)}
-                  />
+              <div className="scanner-page__actions">
+                <Button
+                  label="Scan QR Code"
+                  variant="primary"
+                  icon="qr_code_scanner"
+                  fullWidth
+                  onClick={() => startScan('qr')}
+                />
+                <Button
+                  label="Scan Barcode"
+                  variant="outline"
+                  icon="barcode_scanner"
+                  fullWidth
+                  onClick={() => startScan('barcode')}
+                />
+              </div>
+
+              {qrError && (
+                <div className="scanner-page__alert scanner-page__alert--danger">
+                  <span className="material-icons">error_outline</span>
+                  <span>{qrError}</span>
                 </div>
               )}
+              {lastQrScan && (
+                <div className="scanner-page__alert scanner-page__alert--info">
+                  <span className="material-icons">qr_code_2</span>
+                  <span>Scanned: <strong>{lastQrScan}</strong></span>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="scanner-page__scanning">
+              <div className="scanner-page__scanning-badge">
+                <span className="material-icons">
+                  {scanMode === 'qr' ? 'qr_code_scanner' : 'barcode_scanner'}
+                </span>
+                Scanning {scanMode === 'qr' ? 'QR Code' : 'Barcode'}...
+              </div>
+              <ScannerView
+                mode={scanMode}
+                onScanSuccess={handleScanSuccess}
+              />
+              <Button
+                label="Cancel"
+                variant="ghost"
+                onClick={() => setScanning(false)}
+              />
             </div>
-          </div>
-        </div>
+          )}
+        </GlassBlock>
       </div>
     </main>
   );

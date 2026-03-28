@@ -1,13 +1,12 @@
-@use '../styles/variables/colours' as colours;
+@use '../styles/variables' as vars;
 @use '../styles/variables/breakpoints' as bp;
 
 .supply-chain-map {
   &__container {
     width: 100%;
     height: 400px;
-    border-radius: 0.5rem;
+    border-radius: 0 0 vars.$glass-radius vars.$glass-radius;
     overflow: hidden;
-    border: 1px solid colours.$colour-border;
 
     @include bp.respond-up(md) {
       height: 500px;
@@ -19,14 +18,36 @@
     align-items: center;
     justify-content: center;
     height: 400px;
-    background-color: colours.$colour-background;
-    border: 1px solid colours.$colour-border;
-    border-radius: 0.5rem;
-    color: colours.$colour-text-secondary;
+    background-color: vars.$colour-background;
+    border-radius: 0 0 vars.$glass-radius vars.$glass-radius;
+    color: vars.$colour-text-secondary;
 
     @include bp.respond-up(md) {
       height: 500px;
     }
+  }
+
+  &__spinner {
+    width: 2rem;
+    height: 2rem;
+    border: 3px solid vars.$colour-border;
+    border-top-color: vars.$colour-primary;
+    border-radius: 50%;
+    animation: scm-spin 0.8s linear infinite;
+  }
+
+  &__status-message {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: vars.$colour-warning-bg;
+    border: 1px solid rgb(217 119 6 / 20%);
+    border-radius: vars.$glass-radius-sm;
+    color: vars.$colour-warning;
+    font-size: vars.$font-size-sm;
+    max-width: 360px;
+    text-align: center;
   }
 
   // ── Custom marker pin ──────────────────────────────────────────────────────
@@ -40,12 +61,12 @@
     align-items: center;
     justify-content: center;
     box-shadow: 0 2px 6px rgb(0 0 0 / 30%);
-    background-color: colours.$colour-primary;
+    background-color: vars.$colour-primary;
 
     .material-icons {
       transform: rotate(45deg);
       font-size: 18px;
-      color: colours.$colour-surface;
+      color: vars.$colour-surface;
       line-height: 1;
     }
 
@@ -53,14 +74,30 @@
       opacity: 0.75;
       transition: opacity 0.15s ease;
 
-      &:hover { opacity: 1; }
+      &:hover {
+        opacity: 1;
+      }
     }
 
-    &--farmer      { background-color: colours.$colour-party-farmer; }
-    &--processor   { background-color: colours.$colour-party-processor; }
-    &--distributor { background-color: colours.$colour-party-distributor; }
-    &--warehouse   { background-color: colours.$colour-party-warehouse; }
-    &--retailer    { background-color: colours.$colour-party-retailer; }
+    &--farmer {
+      background-color: vars.$colour-party-farmer;
+    }
+
+    &--processor {
+      background-color: vars.$colour-party-processor;
+    }
+
+    &--distributor {
+      background-color: vars.$colour-party-distributor;
+    }
+
+    &--warehouse {
+      background-color: vars.$colour-party-warehouse;
+    }
+
+    &--retailer {
+      background-color: vars.$colour-party-retailer;
+    }
   }
 
   &__popup-party-type {
@@ -68,15 +105,15 @@
     font-size: 0.75rem;
     padding: 0.1rem 0.4rem;
     border-radius: 0.25rem;
-    background-color: colours.$colour-primary-light;
-    color: colours.$colour-surface;
+    background-color: vars.$colour-primary-light;
+    color: vars.$colour-surface;
     margin-left: 0.25rem;
     text-transform: capitalize;
   }
 
   &__popup-detail {
     font-size: 0.85rem;
-    color: colours.$colour-text-secondary;
+    color: vars.$colour-text-secondary;
     margin: 0.15rem 0 0;
   }
 
@@ -91,12 +128,18 @@
       font-size: 0.85rem;
       font-weight: 600;
       margin: 0 0 0.5rem;
-      color: colours.$colour-text-primary;
+      color: vars.$colour-text-primary;
     }
 
     &-arrow {
       font-size: 1rem;
-      color: colours.$colour-text-secondary;
+      color: vars.$colour-text-secondary;
     }
+  }
+}
+
+@keyframes scm-spin {
+  to {
+    transform: rotate(360deg);
   }
 }

@@ -15,7 +15,7 @@ import type { PartyType } from '@foodchestra/sdk';
 import './SupplyChainMap.scss';
 
 // Matches $colour-danger in _colours.scss
-const POLYLINE_COLOUR = '#dc3545';
+const POLYLINE_COLOUR = '#dc2626';
 
 const PARTY_TYPE_ICONS: Record<PartyType, string> = {
   farmer: 'agriculture',
@@ -235,8 +235,8 @@ export default function SupplyChainMap({ batchNumber, barcode }: SupplyChainMapP
   if (loading) {
     return (
       <div className="supply-chain-map__status">
-        <div className="spinner-border text-secondary" role="status">
-          <span className="visually-hidden">Loading supply chain…</span>
+        <div className="supply-chain-map__spinner" role="status">
+          <span className="sr-only">Loading supply chain…</span>
         </div>
       </div>
     );
@@ -245,7 +245,7 @@ export default function SupplyChainMap({ batchNumber, barcode }: SupplyChainMapP
   if (error || !supplyChain) {
     return (
       <div className="supply-chain-map__status">
-        <div className="alert alert-warning mb-0" role="alert">
+        <div className="supply-chain-map__status-message" role="alert">
           {error || 'No supply chain data available.'}
         </div>
       </div>

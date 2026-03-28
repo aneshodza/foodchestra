@@ -1,0 +1,8 @@
+// ── Design token barrel ───────────────────────────────────────────────────────
+// Import all variable files in one shot:
+//   @use '../../styles/variables' as vars;
+//   then use vars.$colour-primary, vars.$glass-bg, vars.$font-size-base, etc.
+@forward 'colours';
+@forward 'glass';
+@forward 'typography';
+@forward 'breakpoints';

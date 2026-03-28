@@ -9,6 +9,7 @@ vi.mock('@foodchestra/sdk', () => ({
     products: { getByBarcode: vi.fn().mockReturnValue(new Promise(() => {})) },
     reports: { getReports: vi.fn().mockReturnValue(new Promise(() => {})), createReport: vi.fn().mockReturnValue(new Promise(() => {})) },
     batches: { getByBatchNumber: vi.fn().mockReturnValue(new Promise(() => {})), getSupplyChain: vi.fn().mockReturnValue(new Promise(() => {})) },
+    coolingChain: { getCoolingChain: vi.fn().mockReturnValue(new Promise(() => {})) },
   },
 }));
 
@@ -28,7 +29,7 @@ afterEach(() => {
 describe('App', () => {
   it('renders the scanner page at /', () => {
     render(<App />);
-    expect(screen.getByRole('button', { name: 'Scan QR Code' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Scan QR Code/i })).toBeInTheDocument();
   });
 
   it('renders the product page at /products/:barcode', () => {
@@ -37,15 +38,9 @@ describe('App', () => {
     expect(screen.getByText(/Fetching product details/i)).toBeInTheDocument();
   });
 
-  it('renders the supply chain map page at /products/:barcode/maps/:batchNumber', () => {
-    window.history.pushState({}, '', '/products/12345678/maps/LOT-001');
+  it('redirects unknown routes to /', () => {
+    window.history.pushState({}, '', '/some/unknown/route');
     render(<App />);
-    expect(screen.getByText('Supply Chain Journey')).toBeInTheDocument();
-  });
-
-  it('renders the report page at /products/:barcode/report', () => {
-    window.history.pushState({}, '', '/products/12345678/report');
-    render(<App />);
-    expect(screen.getByText(/Report an Issue/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Scan QR Code/i })).toBeInTheDocument();
   });
 });

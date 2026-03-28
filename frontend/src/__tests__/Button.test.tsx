@@ -9,22 +9,32 @@ describe('Button', () => {
 
   it('applies the primary variant class by default', () => {
     render(<Button label="Test" onClick={() => {}} />);
-    expect(screen.getByRole('button')).toHaveClass('btn-primary');
+    expect(screen.getByRole('button')).toHaveClass('fc-button--primary');
   });
 
-  it('applies the correct class for secondary variant', () => {
-    render(<Button label="Test" onClick={() => {}} variant="secondary" />);
-    expect(screen.getByRole('button')).toHaveClass('btn-secondary');
+  it('applies the correct class for outline variant', () => {
+    render(<Button label="Test" onClick={() => {}} variant="outline" />);
+    expect(screen.getByRole('button')).toHaveClass('fc-button--outline');
   });
 
   it('applies the correct class for danger variant', () => {
     render(<Button label="Test" onClick={() => {}} variant="danger" />);
-    expect(screen.getByRole('button')).toHaveClass('btn-danger');
+    expect(screen.getByRole('button')).toHaveClass('fc-button--danger');
   });
 
-  it('applies the correct class for outline-danger variant', () => {
-    render(<Button label="Test" onClick={() => {}} variant="outline-danger" />);
-    expect(screen.getByRole('button')).toHaveClass('btn-outline-danger');
+  it('applies the correct class for ghost variant', () => {
+    render(<Button label="Test" onClick={() => {}} variant="ghost" />);
+    expect(screen.getByRole('button')).toHaveClass('fc-button--ghost');
+  });
+
+  it('applies the full-width class when fullWidth is true', () => {
+    render(<Button label="Test" fullWidth />);
+    expect(screen.getByRole('button')).toHaveClass('fc-button--full');
+  });
+
+  it('renders the icon when provided', () => {
+    render(<Button label="Test" icon="home" />);
+    expect(screen.getByText('home')).toBeInTheDocument();
   });
 
   it('calls onClick when clicked', () => {

@@ -9,8 +9,12 @@ vi.mock('@foodchestra/sdk', () => ({
     health: { getAlive: vi.fn().mockResolvedValue({ status: 'ok' }) },
     scans: { logScan: vi.fn().mockResolvedValue({}) },
     products: { getByBarcode: vi.fn().mockReturnValue(new Promise(() => {})) },
-    reports: { getReports: vi.fn().mockReturnValue(new Promise(() => {})) },
+    reports: { getReports: vi.fn().mockReturnValue(new Promise(() => {})), createReport: vi.fn().mockReturnValue(new Promise(() => {})) },
   },
+}));
+
+vi.mock('../components/SupplyChainMap', () => ({
+  default: () => <div>Mock Map</div>,
 }));
 
 vi.mock('../components/shared/ScannerView', () => ({

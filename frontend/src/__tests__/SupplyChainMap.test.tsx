@@ -320,7 +320,7 @@ describe('SupplyChainMap', () => {
             [nodeA.location.latitude, nodeA.location.longitude],
             [nodeB.location.latitude, nodeB.location.longitude],
           ],
-          expect.objectContaining({ color: '#dc3545' }),
+          expect.objectContaining({ color: '#dc2626' }),
         );
       });
     });

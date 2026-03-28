@@ -1,17 +1,36 @@
+@use '../../styles/variables' as vars;
 
 .backend-status {
-  position: absolute;
+  position: fixed;
   top: 1rem;
-  left: 1rem;
+  right: 1rem;
   z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
   padding: 0.375rem 0.75rem;
-  margin: 0;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  border-radius: 0.375rem;
+  border-radius: 100px;
+  font-size: vars.$font-size-xs;
+  font-weight: vars.$font-weight-medium;
+  backdrop-filter: blur(vars.$glass-blur);
+  // stylelint-disable-next-line property-no-vendor-prefix
+  -webkit-backdrop-filter: blur(vars.$glass-blur);
+  border: 1px solid rgb(255 255 255 / 40%);
+
+  &--up {
+    background: vars.$colour-success-bg;
+    color: vars.$colour-success;
+    border-color: rgb(26 122 79 / 30%);
+  }
+
+  &--down {
+    background: vars.$colour-danger-bg;
+    color: vars.$colour-danger;
+    border-color: rgb(220 38 38 / 30%);
+  }
 
   &__icon {
-    font-size: 1rem;
+    font-size: 0.875rem;
     line-height: 1;
   }
 
