@@ -424,14 +424,14 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 ## User Reports (feature/user-reports)
 - `GET /products/:barcode/reports` — returns `{ count, recentCount24h, hasWarning, reports[] }`. Warning triggers when `recentCount24h > 4`. Only reports from last 30 days are counted/returned. Auto-resolves (no warning) when 30-day window is empty.
 - `POST /products/:barcode/reports` — anonymous report; requires `category` (enum), optional `description` (max 500 chars in UI). Product must already be cached.
-- Migration `006_create_reports.sql` — `report_category` enum (`expired`, `damaged_packaging`, `quality_issue`, `foreign_object`, `mislabeled`, `other`), `reports` table with UUID PK + `product_id` FK + composite index `(product_id, created_at DESC)`.
+- Migration `006_create_reports.sql` — `report_category` enum (`damaged_packaging`, `quality_issue`, `foreign_object`, `mislabeled`, `other`), `reports` table with UUID PK + `product_id` FK + composite index `(product_id, created_at DESC)`. Enum is guarded with `DO $$ BEGIN ... EXCEPTION WHEN duplicate_object THEN NULL; END $$;` (same pattern as `party_type` in 004). `expired` was intentionally excluded — a product being past its date is a manufacturer/retailer concern, not a quality report.
 - `reports.repository.ts` — `createReport()`, `getReportSummaryByProductId()` (single conditional-aggregation query), `getReportsByProductId()`.
 - `reports.router.ts` — `Router({ mergeParams: true })` mounted under `/products` in `app.ts` — critical for param inheritance.
 - SDK: `sdk/src/types/reports.ts` + `sdk/src/routes/reports.ts`; `client.reports.getReports(barcode)` + `client.reports.createReport(barcode, input)`.
 - Frontend: `ReportIssuePage.tsx` at `/products/:barcode/report` — category dropdown + description textarea + confirmation on success.
 - `ProductView.tsx` fetches product + reports in parallel via `Promise.allSettled` (reports failure degrades gracefully). Shows red alert if `hasWarning`, social proof text if `count > 0`, navigates to ReportIssuePage on "Report Issue" click.
 - `Button.tsx` `variant` type extended with `'outline-danger'` (fixes pre-existing type gap).
-- Test counts: backend 70 tests (9 suites), frontend 73 tests (8 files).
+- Test counts: backend 71 tests (9 suites), frontend 85 tests (9 files).
 - **Stretch goals (not yet implemented):** image upload on reports; agent-based spam detection (cross-checks reports, flags fakes before showing warning).
 
 ## Supply Chain Map (feature/openmap-integration)
