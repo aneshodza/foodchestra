@@ -1,14 +1,18 @@
-import { Router, Request, Response } from 'express';
+import type { Request, Response } from 'express';
+import { Router } from 'express';
 import { isValidBarcode } from '../utils/barcode';
 import { getProductByBarcode } from '../repositories/products.repository';
+import type {
+  ReportCategory} from '../repositories/reports.repository';
 import {
   createReport,
   getReportSummaryByProductId,
-  getReportsByProductId,
-  ReportCategory,
+  getReportsByProductId
 } from '../repositories/reports.repository';
 
 const router = Router({ mergeParams: true });
+
+const REPORTS_WARNING_THRESHOLD = 4;
 
 const REPORT_CATEGORIES: ReportCategory[] = [
   'damaged_packaging',
@@ -66,29 +70,34 @@ router.get('/:barcode/reports', async (req: Request, res: Response) => {
     return;
   }
 
-  const product = await getProductByBarcode(barcode);
-  if (!product) {
-    res.status(404).json({ error: 'Product not found' });
-    return;
+  try {
+    const product = await getProductByBarcode(barcode);
+    if (!product) {
+      res.status(404).json({ error: 'Product not found' });
+      return;
+    }
+
+    const [summary, reports] = await Promise.all([
+      getReportSummaryByProductId(product.id),
+      getReportsByProductId(product.id),
+    ]);
+
+    res.status(200).json({
+      count: summary.count30d,
+      recentCount24h: summary.recentCount24h,
+      hasWarning: summary.recentCount24h > REPORTS_WARNING_THRESHOLD,
+      reports: reports.map((r) => ({
+        id: r.id,
+        productId: r.product_id,
+        category: r.category,
+        description: r.description,
+        createdAt: r.created_at,
+      })),
+    });
+  } catch (err) {
+    console.error('GET /products/:barcode/reports error:', err);
+    res.status(500).json({ error: 'Failed to fetch reports' });
   }
-
-  const [summary, reports] = await Promise.all([
-    getReportSummaryByProductId(product.id),
-    getReportsByProductId(product.id),
-  ]);
-
-  res.status(200).json({
-    count: summary.count30d,
-    recentCount24h: summary.recentCount24h,
-    hasWarning: summary.recentCount24h > 4,
-    reports: reports.map((r) => ({
-      id: r.id,
-      productId: r.product_id,
-      category: r.category,
-      description: r.description,
-      createdAt: r.created_at,
-    })),
-  });
 });
 
 /**
@@ -149,25 +158,30 @@ router.post('/:barcode/reports', async (req: Request, res: Response) => {
     return;
   }
 
-  const product = await getProductByBarcode(barcode);
-  if (!product) {
-    res.status(404).json({ error: 'Product not found' });
-    return;
+  try {
+    const product = await getProductByBarcode(barcode);
+    if (!product) {
+      res.status(404).json({ error: 'Product not found' });
+      return;
+    }
+
+    const report = await createReport({
+      product_id: product.id,
+      category: category as ReportCategory,
+      description: description ?? null,
+    });
+
+    res.status(201).json({
+      id: report.id,
+      productId: report.product_id,
+      category: report.category,
+      description: report.description,
+      createdAt: report.created_at,
+    });
+  } catch (err) {
+    console.error('POST /products/:barcode/reports error:', err);
+    res.status(500).json({ error: 'Failed to create report' });
   }
-
-  const report = await createReport({
-    product_id: product.id,
-    category: category as ReportCategory,
-    description: description ?? null,
-  });
-
-  res.status(201).json({
-    id: report.id,
-    productId: report.product_id,
-    category: report.category,
-    description: report.description,
-    createdAt: report.created_at,
-  });
 });
 
 export default router;

@@ -1,5 +1,5 @@
-@import '../../styles/variables/colours';
-@import '../../styles/variables/breakpoints';
+@use '../../styles/variables/colours' as colours;
+@use '../../styles/variables/breakpoints' as bp;
 
 .fc-button {
   font-weight: 600;
@@ -9,11 +9,11 @@
     box-shadow 0.2s ease;
 
   &:focus-visible {
-    outline: 3px solid $colour-primary-light;
+    outline: 3px solid colours.$colour-primary-light;
     outline-offset: 2px;
   }
 
-  @include respond-up(md) {
+  @include bp.respond-up(md) {
     padding: 0.5rem 1.5rem;
   }
 }

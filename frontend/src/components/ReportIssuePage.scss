@@ -1,5 +1,4 @@
-@import '../styles/variables/colours';
-@import '../styles/variables/breakpoints';
+@use '../styles/variables/colours' as colours;
 
 .report-issue-page {
   &__card {
@@ -17,7 +16,7 @@
   }
 
   &__char-hint {
-    color: $colour-text-secondary;
+    color: colours.$colour-text-secondary;
     font-size: 0.8rem;
   }
 }

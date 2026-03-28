@@ -1,4 +1,4 @@
-@import '../styles/variables/colours';
+@use '../styles/variables/colours' as colours;
 
 .product-view {
   .product-image {
@@ -28,29 +28,29 @@
       line-height: 1;
     }
 
-    // Standard Nutri-Score colors
+    // Standard Nutri-Score colors (official brand palette)
     &-a {
-      background-color: #008142;
+      background-color: colours.$colour-nutriscore-a;
       color: white;
     }
 
     &-b {
-      background-color: #85bb2f;
+      background-color: colours.$colour-nutriscore-b;
       color: white;
     }
 
     &-c {
-      background-color: #fecb02;
+      background-color: colours.$colour-nutriscore-c;
       color: black;
     }
 
     &-d {
-      background-color: #ee8100;
+      background-color: colours.$colour-nutriscore-d;
       color: white;
     }
 
     &-e {
-      background-color: #e63e11;
+      background-color: colours.$colour-nutriscore-e;
       color: white;
     }
   }

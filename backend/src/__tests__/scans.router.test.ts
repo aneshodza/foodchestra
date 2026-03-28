@@ -19,9 +19,9 @@ afterEach(() => {
 
 const sampleScan: repo.Scan = {
   id: 'uuid-abc-123',
-  scan_result: '1234567890123',
-  scan_type: 'barcode',
-  scanned_at: '2026-03-27T10:00:00Z',
+  scanResult: '1234567890123',
+  scanType: 'barcode',
+  scannedAt: '2026-03-27T10:00:00Z',
   metadata: {},
 };
 
@@ -41,8 +41,8 @@ describe('POST /scans', () => {
     });
     expect(res.body).toMatchObject({
       id: 'uuid-abc-123',
-      scan_result: '1234567890123',
-      scan_type: 'barcode',
+      scanResult: '1234567890123',
+      scanType: 'barcode',
     });
   });
 

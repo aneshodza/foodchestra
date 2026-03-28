@@ -340,14 +340,25 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 - Test files in `src/__tests__/`: `barcode.test.ts`, `Button.test.tsx`, `BackendStatus.test.tsx`, `ScannerView.test.tsx`, `ScannerPage.test.tsx`, `ProductView.test.tsx`, `App.test.tsx`, `SupplyChainMap.test.tsx`, `SupplyChainMapPage.test.tsx`, `ReportIssuePage.test.tsx`
 
 ## npm scripts
+- `npm run setup` (from root) — first-time setup: installs deps, copies `.env.example` → `.env` (skips if exists), installs git hooks, builds SDK + MCP
 - `npm run dev` (from `backend/`) — starts BE dev server with hot reload (port 3000)
 - `npm run dev` (from `frontend/`) — starts FE dev server (port 5173)
 - `npm run dev` (from root) — starts backend, frontend, and agent in parallel
 - `npm run lint` (from root) — ESLints all 5 workspaces in parallel
 - `npm run lint:scss` (from root or `frontend/`) — Stylelint SCSS check
 - `npm run lint` / `npm run lint:fix` (from any workspace) — scoped to that workspace only
+- `npm run check` (from root) — full lint + `tsc --noEmit` across all workspaces; runs automatically on `git push` via pre-push hook
+- `npm run typecheck` (from any workspace) — `tsc --noEmit` scoped to that workspace
+- `npm run db:reset` (from root) — drops + recreates local dev DB schema (asks for confirmation); migrations re-run on next backend start
 - `npm test` (from `backend/`) — Jest; `npm test` (from `frontend/`) — Vitest
 - Adding new BE routers: create `src/routers/<name>.router.ts`, mount in `app.ts`, add `@openapi` JSDoc — swagger picks it up automatically, no other config needed
+
+## Git hooks (Husky)
+- `.husky/` is **committed to git** — that's intentional. All team members get the same hooks automatically via `"prepare": "husky"` which runs on every `npm install`.
+- **pre-commit** — runs `lint-staged`: only lints/fixes files that are actually staged (fast). ESLint on `.ts`/`.tsx`, Stylelint on `.scss`.
+- **pre-push** — runs `scripts/check.sh`: full lint + typecheck across all workspaces. Catches issues that pre-commit misses (e.g. type errors in unstaged files).
+- `lint-staged` config lives in root `package.json` under `"lint-staged"`.
+- To bypass a hook in an emergency: `git commit --no-verify` / `git push --no-verify` (use sparingly).
 
 ## Conventions established
 - All routers go in `src/routers/<name>.router.ts`

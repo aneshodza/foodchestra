@@ -1,4 +1,5 @@
-import { Router, Request, Response } from 'express';
+import type { Request, Response } from 'express';
+import { Router } from 'express';
 import { SupplyChainRepository } from '../repositories/supply-chain.repository';
 
 const router = Router();
@@ -18,7 +19,7 @@ const router = Router();
  *         type:
  *           type: string
  *           enum: [farmer, processor, distributor, warehouse, retailer]
- *         created_at:
+ *         createdAt:
  *           type: string
  *           format: date-time
  *     PartyLocation:
@@ -27,7 +28,7 @@ const router = Router();
  *         id:
  *           type: string
  *           format: uuid
- *         party_id:
+ *         partyId:
  *           type: string
  *           format: uuid
  *         label:
@@ -38,7 +39,7 @@ const router = Router();
  *           type: number
  *         address:
  *           type: string
- *         created_at:
+ *         createdAt:
  *           type: string
  *           format: date-time
  */

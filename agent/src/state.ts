@@ -1,4 +1,4 @@
-import { BaseMessage } from "@langchain/core/messages";
+import type { BaseMessage } from "@langchain/core/messages";
 import { Annotation } from "@langchain/langgraph";
 
 export const GraphState = Annotation.Root({

@@ -4,6 +4,14 @@ import type { Scan, CreateScanInput } from '@foodchestra/sdk';
 export type { Scan, CreateScanInput };
 export type { ScanType } from '@foodchestra/sdk';
 
+const mapScan = (r: Record<string, unknown>): Scan => ({
+  id: r['id'] as string,
+  scanResult: r['scan_result'] as string,
+  scanType: r['scan_type'] as Scan['scanType'],
+  scannedAt: r['scanned_at'] as string,
+  metadata: r['metadata'] as Record<string, unknown>,
+});
+
 export const ScansRepository = {
   /**
    * Persists a new scan record.
@@ -16,7 +24,7 @@ export const ScansRepository = {
     `;
     const params = [input.scanResult, input.scanType, input.metadata || {}];
     const res = await pool.query(sql, params);
-    return res.rows[0];
+    return mapScan(res.rows[0]);
   },
 
   /**
@@ -30,6 +38,6 @@ export const ScansRepository = {
       LIMIT $1
     `;
     const res = await pool.query(sql, [limit]);
-    return res.rows;
+    return res.rows.map(mapScan);
   }
 };

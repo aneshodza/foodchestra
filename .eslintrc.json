@@ -1,0 +1,46 @@
+{
+  "root": true,
+  "parser": "@typescript-eslint/parser",
+  "plugins": ["@typescript-eslint"],
+  "extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended"],
+  "env": { "es2022": true },
+  "rules": {
+    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+    "@typescript-eslint/explicit-function-return-type": "off",
+    "@typescript-eslint/no-explicit-any": "error",
+    "@typescript-eslint/consistent-type-imports": ["error", { "prefer": "type-imports" }],
+    "eqeqeq": ["error", "always"],
+    "no-magic-numbers": [
+      "warn",
+      {
+        "ignore": [0, 1, -1, 2, 10, 200, 201, 204, 400, 401, 403, 404, 409, 422, 500, 502, 503],
+        "ignoreArrayIndexes": true,
+        "ignoreDefaultValues": true,
+        "ignoreClassFieldInitialValues": true
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["backend/**/*.ts", "sdk/**/*.ts", "agent/**/*.ts", "mcp/**/*.ts"],
+      "env": { "node": true }
+    },
+    {
+      "files": ["frontend/**/*.{ts,tsx}"],
+      "env": { "browser": true },
+      "plugins": ["@typescript-eslint", "react", "react-hooks"],
+      "extends": [
+        "plugin:react/recommended",
+        "plugin:react/jsx-runtime",
+        "plugin:react-hooks/recommended"
+      ],
+      "settings": { "react": { "version": "detect" } }
+    },
+    {
+      "files": ["**/*.test.ts", "**/*.test.tsx"],
+      "rules": {
+        "no-magic-numbers": "off"
+      }
+    }
+  ]
+}

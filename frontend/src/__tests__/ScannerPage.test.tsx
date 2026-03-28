@@ -27,7 +27,7 @@ vi.mock('../utils/gs1', () => ({
   parseGs1QrCode: vi.fn(),
 }));
 
-global.alert = vi.fn();
+window.alert = vi.fn();
 
 function renderWithRouter(initialPath = '/') {
   return render(

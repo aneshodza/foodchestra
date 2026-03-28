@@ -1,7 +1,12 @@
-import { Router, Request, Response } from 'express';
+import type { Request, Response } from 'express';
+import { Router } from 'express';
 import { getRecalls } from '../repositories/recalls.repository';
 
 const router = Router();
+
+const RECALLS_DEFAULT_PAGE = 1;
+const RECALLS_DEFAULT_PAGE_SIZE = 20;
+const RECALLS_MAX_PAGE_SIZE = 100;
 
 /**
  * @openapi
@@ -57,8 +62,8 @@ const router = Router();
  *         description: Database error
  */
 router.get('/', async (req: Request, res: Response) => {
-  const page = Math.max(1, parseInt(String(req.query['page'] ?? '1'), 10) || 1);
-  const pageSize = Math.min(100, Math.max(1, parseInt(String(req.query['pageSize'] ?? '20'), 10) || 20));
+  const page = Math.max(RECALLS_DEFAULT_PAGE, parseInt(String(req.query['page'] ?? String(RECALLS_DEFAULT_PAGE)), 10) || RECALLS_DEFAULT_PAGE);
+  const pageSize = Math.min(RECALLS_MAX_PAGE_SIZE, Math.max(RECALLS_DEFAULT_PAGE, parseInt(String(req.query['pageSize'] ?? String(RECALLS_DEFAULT_PAGE_SIZE)), 10) || RECALLS_DEFAULT_PAGE_SIZE));
 
   try {
     const { rows, total } = await getRecalls(page, pageSize);

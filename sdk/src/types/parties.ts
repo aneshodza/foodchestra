@@ -4,15 +4,15 @@ export interface Party {
   id: string;
   name: string;
   type: PartyType;
-  created_at: string;
+  createdAt: string;
 }
 
 export interface PartyLocation {
   id: string;
-  party_id: string;
+  partyId: string;
   label: string | null;
   latitude: number;
   longitude: number;
   address: string | null;
-  created_at: string;
+  createdAt: string;
 }

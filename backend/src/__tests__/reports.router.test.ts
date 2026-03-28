@@ -112,6 +112,15 @@ describe('GET /products/:barcode/reports', () => {
     expect(res.status).toBe(200);
     expect(res.body.hasWarning).toBe(false);
   });
+
+  it('returns 500 when the database throws', async () => {
+    mockGetProduct.mockRejectedValueOnce(new Error('DB connection lost'));
+
+    const res = await request(app).get('/products/7610807001024/reports');
+
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: 'Failed to fetch reports' });
+  });
 });
 
 describe('POST /products/:barcode/reports', () => {
@@ -195,6 +204,17 @@ describe('POST /products/:barcode/reports', () => {
       description: null,
     });
     expect(res.body.description).toBeNull();
+  });
+
+  it('returns 500 when the database throws', async () => {
+    mockGetProduct.mockRejectedValueOnce(new Error('DB connection lost'));
+
+    const res = await request(app)
+      .post('/products/7610807001024/reports')
+      .send({ category: 'quality_issue' });
+
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: 'Failed to create report' });
   });
 
   it('accepts all valid category values', async () => {

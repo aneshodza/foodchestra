@@ -4,6 +4,8 @@ import './BackendStatus.scss';
 
 type Status = 'checking' | 'up' | 'down';
 
+const HEALTH_POLL_INTERVAL_MS = 5_000;
+
 function BackendStatus() {
   const [status, setStatus] = useState<Status>('checking');
 
@@ -16,7 +18,7 @@ function BackendStatus() {
     };
 
     check();
-    const interval = setInterval(check, 5000);
+    const interval = setInterval(check, HEALTH_POLL_INTERVAL_MS);
     return () => clearInterval(interval);
   }, []);
 

@@ -1,5 +1,8 @@
 import { pool } from '../db';
 
+const REPORT_WINDOW_DAYS = 30;
+const REPORT_RECENT_HOURS = 24;
+
 export type ReportCategory =
   | 'damaged_packaging'
   | 'quality_issue'
@@ -38,8 +41,8 @@ export async function createReport(input: {
 export async function getReportSummaryByProductId(productId: number): Promise<ReportSummary> {
   const result = await pool.query<{ count_30d: string; count_24h: string }>(
     `SELECT
-       COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '30 days') AS count_30d,
-       COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '24 hours') AS count_24h
+       COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '1 day' * ${REPORT_WINDOW_DAYS}) AS count_30d,
+       COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '1 hour' * ${REPORT_RECENT_HOURS}) AS count_24h
      FROM reports
      WHERE product_id = $1`,
     [productId],
@@ -57,7 +60,7 @@ export async function getReportsByProductId(productId: number): Promise<ReportRo
     `SELECT id, product_id, category, description, created_at
      FROM reports
      WHERE product_id = $1
-       AND created_at > NOW() - INTERVAL '30 days'
+       AND created_at > NOW() - INTERVAL '1 day' * ${REPORT_WINDOW_DAYS}
      ORDER BY created_at DESC`,
     [productId],
   );
