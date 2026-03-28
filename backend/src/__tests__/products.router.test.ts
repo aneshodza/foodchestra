@@ -2,8 +2,14 @@ import express from 'express';
 import request from 'supertest';
 import productsRouter from '../routers/products.router';
 import * as repo from '../repositories/products.repository';
+import { CoolingChainRepository } from '../repositories/cooling-chain.repository';
 
 jest.mock('../repositories/products.repository');
+jest.mock('../repositories/cooling-chain.repository');
+
+const mockHasCoolingBreachForProduct = CoolingChainRepository.hasCoolingBreachForProduct as jest.MockedFunction<
+  typeof CoolingChainRepository.hasCoolingBreachForProduct
+>;
 
 const mockGetProductByBarcode = repo.getProductByBarcode as jest.MockedFunction<typeof repo.getProductByBarcode>;
 const mockUpsertProduct = repo.upsertProduct as jest.MockedFunction<typeof repo.upsertProduct>;
@@ -183,5 +189,43 @@ describe('GET /products/:barcode', () => {
       nutriscoreGrade: null,
       ingredients: [],
     });
+  });
+});
+
+describe('GET /products/:barcode/cooling-status', () => {
+  it('returns 400 for an invalid barcode', async () => {
+    const res = await request(app).get('/products/not-a-barcode/cooling-status');
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'Invalid barcode format' });
+  });
+
+  it('returns potentialBreach: true when a breach is detected', async () => {
+    mockHasCoolingBreachForProduct.mockResolvedValueOnce(true);
+
+    const res = await request(app).get('/products/5901234123457/cooling-status');
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ potentialBreach: true });
+    expect(mockHasCoolingBreachForProduct).toHaveBeenCalledWith('5901234123457');
+  });
+
+  it('returns potentialBreach: false when no breach exists', async () => {
+    mockHasCoolingBreachForProduct.mockResolvedValueOnce(false);
+
+    const res = await request(app).get('/products/5901234123457/cooling-status');
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ potentialBreach: false });
+  });
+
+  it('returns 500 when the repository throws', async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    mockHasCoolingBreachForProduct.mockRejectedValueOnce(new Error('DB error'));
+
+    const res = await request(app).get('/products/5901234123457/cooling-status');
+
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: 'Failed to fetch cooling status' });
+    consoleSpy.mockRestore();
   });
 });

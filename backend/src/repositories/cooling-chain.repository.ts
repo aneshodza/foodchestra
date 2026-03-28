@@ -2,10 +2,25 @@ import { pool } from '../db';
 import type {
   CoolingChainReading,
   CoolingChainEdgeData,
+  CoolingChainAnomaly,
   CreateReadingInput,
 } from '@foodchestra/sdk';
 
 export type { CoolingChainReading, CoolingChainEdgeData, CreateReadingInput };
+
+export const COOLING_BREACH_THRESHOLD_CELSIUS = 2;
+
+function computeAnomaly(
+  readings: CoolingChainReading[],
+  thresholdCelsius: number,
+): CoolingChainAnomaly | null {
+  if (readings.length === 0) return null;
+  const avg = readings.reduce((sum, r) => sum + r.celsius, 0) / readings.length;
+  const upperBound = avg + thresholdCelsius;
+  const lowerBound = avg - thresholdCelsius;
+  const hasBreach = readings.some((r) => r.celsius > upperBound || r.celsius < lowerBound);
+  return { hasBreach, averageCelsius: avg, upperBound, lowerBound, thresholdCelsius };
+}
 
 export const CoolingChainRepository = {
   async findByEdge(edgeId: string): Promise<CoolingChainReading[]> {
@@ -50,6 +65,7 @@ export const CoolingChainRepository = {
           fromNodeId: r.from_node_id,
           toNodeId: r.to_node_id,
           readings: [],
+          anomaly: null,
         });
       }
       map.get(edgeId)!.readings.push({
@@ -60,7 +76,33 @@ export const CoolingChainRepository = {
       });
     }
 
+    for (const edge of map.values()) {
+      edge.anomaly = computeAnomaly(edge.readings, COOLING_BREACH_THRESHOLD_CELSIUS);
+    }
+
     return Array.from(map.values());
+  },
+
+  async hasCoolingBreachForProduct(barcode: string): Promise<boolean> {
+    const res = await pool.query(
+      `WITH edge_avgs AS (
+         SELECT e.id AS edge_id, AVG(ccr.celsius) AS avg_temp
+         FROM cooling_chain_readings ccr
+         JOIN supply_chain_edges e ON e.id = ccr.edge_id
+         JOIN supply_chain_nodes n ON n.id = e.from_node_id
+         JOIN supply_chains sc ON sc.id = n.supply_chain_id
+         JOIN batches b ON b.id = sc.batch_id
+         WHERE b.product_barcode = $1
+         GROUP BY e.id
+       )
+       SELECT EXISTS(
+         SELECT 1 FROM cooling_chain_readings ccr
+         JOIN edge_avgs ea ON ea.edge_id = ccr.edge_id
+         WHERE ABS(ccr.celsius - ea.avg_temp) > $2
+       ) AS has_breach`,
+      [barcode, COOLING_BREACH_THRESHOLD_CELSIUS],
+    );
+    return res.rows[0].has_breach as boolean;
   },
 
   async bulkCreate(readings: CreateReadingInput[]): Promise<CoolingChainReading[]> {

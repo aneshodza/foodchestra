@@ -2,20 +2,22 @@ import { useEffect, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet-arrowheads';
-import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, ReferenceArea } from 'recharts';
 import type { LatLngBoundsExpression, LatLngTuple } from 'leaflet';
 import { client } from '@foodchestra/sdk';
 import type {
   SupplyChain,
   SupplyChainNode,
   CoolingChainEdgeData,
+  CoolingChainAnomaly,
   CoolingChainReading,
 } from '@foodchestra/sdk';
 import type { PartyType } from '@foodchestra/sdk';
 import './SupplyChainMap.scss';
 
-// Matches $colour-danger in _colours.scss
-const POLYLINE_COLOUR = '#dc3545';
+// Matches $colour-chain-ok / $colour-danger in _colours.scss
+const CHAIN_OK_COLOUR = '#0d6efd';
+const CHAIN_BREACH_COLOUR = '#dc3545';
 
 const PARTY_TYPE_ICONS: Record<PartyType, string> = {
   farmer: 'agriculture',
@@ -39,14 +41,29 @@ function createMarkerIcon(partyType: PartyType, isFinal: boolean, isActive: bool
   });
 }
 
-function ArrowPolyline({ positions, onClick }: { positions: LatLngTuple[]; onClick: () => void }) {
+function ArrowPolyline({
+  positions,
+  hasBreach,
+  onClick,
+}: {
+  positions: LatLngTuple[];
+  hasBreach: boolean | undefined;
+  onClick: () => void;
+}) {
   const map = useMap();
   // Use a ref so the click handler is always fresh without being a useEffect dep.
   const onClickRef = useRef(onClick);
   onClickRef.current = onClick;
 
   useEffect(() => {
-    const line = L.polyline(positions, { color: POLYLINE_COLOUR, weight: 3, opacity: 0.85 }).arrowheads({
+    const color = hasBreach ? CHAIN_BREACH_COLOUR : CHAIN_OK_COLOUR;
+
+    // Invisible wide polyline for a larger click target
+    const hitArea = L.polyline(positions, { color, weight: 14, opacity: 0 });
+    hitArea.on('click', () => onClickRef.current());
+    hitArea.addTo(map);
+
+    const line = L.polyline(positions, { color, weight: 3, opacity: 0.85 }).arrowheads({
       size: '12px',
       frequency: 'endonly',
       fill: true,
@@ -54,10 +71,12 @@ function ArrowPolyline({ positions, onClick }: { positions: LatLngTuple[]; onCli
     });
     line.on('click', () => onClickRef.current());
     line.addTo(map);
+
     return () => {
+      hitArea.remove();
       line.remove();
     };
-  }, [map, positions]);
+  }, [map, positions, hasBreach]);
 
   return null;
 }
@@ -100,10 +119,11 @@ interface EdgePopupProps {
   fromNode: SupplyChainNode;
   toNode: SupplyChainNode;
   readings: CoolingChainReading[];
+  anomaly: CoolingChainAnomaly | null | undefined;
   onClose: () => void;
 }
 
-function EdgePopup({ fromNode, toNode, readings, onClose }: EdgePopupProps) {
+function EdgePopup({ fromNode, toNode, readings, anomaly, onClose }: EdgePopupProps) {
   const midpoint: LatLngTuple = [
     (fromNode.location.latitude + toNode.location.latitude) / 2,
     (fromNode.location.longitude + toNode.location.longitude) / 2,
@@ -113,6 +133,15 @@ function EdgePopup({ fromNode, toNode, readings, onClose }: EdgePopupProps) {
     time: new Date(r.recordedAt).getTime(),
     celsius: r.celsius,
   }));
+
+  // Compute explicit Y domain so ReferenceArea fills only the breach zones
+  const celsiusValues = chartData.map((d) => d.celsius);
+  const yMin = Math.floor(
+    anomaly ? Math.min(...celsiusValues, anomaly.lowerBound) - 1 : Math.min(...celsiusValues) - 1,
+  );
+  const yMax = Math.ceil(
+    anomaly ? Math.max(...celsiusValues, anomaly.upperBound) + 1 : Math.max(...celsiusValues) + 1,
+  );
 
   return (
     <Popup
@@ -143,7 +172,9 @@ function EdgePopup({ fromNode, toNode, readings, onClose }: EdgePopupProps) {
               unit="°"
               width={32}
               tick={{ fontSize: 10 }}
-              domain={['auto', 'auto']}
+              domain={[yMin, yMax]}
+              tickFormatter={(v: number) => String(Math.round(v))}
+              allowDecimals={false}
             />
             <Tooltip
               labelFormatter={(t) =>
@@ -156,10 +187,18 @@ function EdgePopup({ fromNode, toNode, readings, onClose }: EdgePopupProps) {
               }
               formatter={(val) => [`${val}°C`, 'Temp']}
             />
+            {anomaly && (
+              <>
+                <ReferenceArea y1={anomaly.upperBound} y2={yMax} fill={CHAIN_BREACH_COLOUR} fillOpacity={0.08} />
+                <ReferenceArea y1={yMin} y2={anomaly.lowerBound} fill={CHAIN_BREACH_COLOUR} fillOpacity={0.08} />
+                <ReferenceLine y={anomaly.upperBound} stroke={CHAIN_BREACH_COLOUR} strokeDasharray="3 3" strokeWidth={1} />
+                <ReferenceLine y={anomaly.lowerBound} stroke={CHAIN_BREACH_COLOUR} strokeDasharray="3 3" strokeWidth={1} />
+              </>
+            )}
             <Line
               type="monotone"
               dataKey="celsius"
-              stroke={POLYLINE_COLOUR}
+              stroke={CHAIN_BREACH_COLOUR}
               dot={false}
               strokeWidth={2}
             />
@@ -174,6 +213,7 @@ interface SelectedEdge {
   fromNode: SupplyChainNode;
   toNode: SupplyChainNode;
   data: CoolingChainEdgeData | undefined;
+  anomaly: CoolingChainAnomaly | null | undefined;
 }
 
 export default function SupplyChainMap({ batchNumber, barcode }: SupplyChainMapProps) {
@@ -320,13 +360,16 @@ export default function SupplyChainMap({ batchNumber, barcode }: SupplyChainMapP
                 [from.location.latitude, from.location.longitude],
                 [to.location.latitude, to.location.longitude],
               ]}
-              onClick={() =>
+              hasBreach={coolingByEdge.get(`${edge.fromNodeId}:${edge.toNodeId}`)?.anomaly?.hasBreach}
+              onClick={() => {
+                const edgeData = coolingByEdge.get(`${edge.fromNodeId}:${edge.toNodeId}`);
                 setSelectedEdge({
                   fromNode: from,
                   toNode: to,
-                  data: coolingByEdge.get(`${edge.fromNodeId}:${edge.toNodeId}`),
-                })
-              }
+                  data: edgeData,
+                  anomaly: edgeData?.anomaly,
+                });
+              }}
             />
           );
         })}
@@ -336,6 +379,7 @@ export default function SupplyChainMap({ batchNumber, barcode }: SupplyChainMapP
             fromNode={selectedEdge.fromNode}
             toNode={selectedEdge.toNode}
             readings={selectedEdge.data?.readings ?? []}
+            anomaly={selectedEdge.anomaly}
             onClose={() => setSelectedEdge(null)}
           />
         )}

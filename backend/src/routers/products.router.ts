@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { Router } from 'express';
 import { isValidBarcode } from '../utils/barcode';
 import { lookupProduct } from '../services/products.service';
+import { CoolingChainRepository } from '../repositories/cooling-chain.repository';
 
 const router = Router();
 
@@ -73,6 +74,51 @@ router.get('/:barcode', async (req: Request, res: Response) => {
     found: true,
     product: { id: result.productId, ...result.product },
   });
+});
+
+/**
+ * @openapi
+ * /products/{barcode}/cooling-status:
+ *   get:
+ *     tags:
+ *       - Products
+ *     summary: Check if any cooling breach was detected for a product
+ *     parameters:
+ *       - in: path
+ *         name: barcode
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Breach status across all known batches for the product
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 potentialBreach:
+ *                   type: boolean
+ *       400:
+ *         description: Invalid barcode format
+ *       500:
+ *         description: Database error
+ */
+router.get('/:barcode/cooling-status', async (req: Request, res: Response) => {
+  const { barcode } = req.params;
+
+  if (!isValidBarcode(barcode)) {
+    res.status(400).json({ error: 'Invalid barcode format' });
+    return;
+  }
+
+  try {
+    const potentialBreach = await CoolingChainRepository.hasCoolingBreachForProduct(barcode);
+    res.json({ potentialBreach });
+  } catch (err) {
+    console.error('Failed to fetch cooling status:', err);
+    res.status(500).json({ error: 'Failed to fetch cooling status' });
+  }
 });
 
 export default router;

@@ -7,6 +7,7 @@ vi.mock('@foodchestra/sdk', () => ({
   client: {
     products: {
       getByBarcode: vi.fn(),
+      getCoolingStatus: vi.fn(),
     },
     reports: {
       getReports: vi.fn(),
@@ -408,5 +409,59 @@ describe('ProductView', () => {
       expect(screen.getByText('Test Chocolate')).toBeInTheDocument();
     });
     expect(screen.queryByText(/reported issues/)).not.toBeInTheDocument();
+  });
+
+  it('shows cooling breach warning when potentialBreach is true', async () => {
+    const { client } = await import('@foodchestra/sdk');
+    (client.products.getByBarcode as ReturnType<typeof vi.fn>).mockResolvedValue({
+      found: true,
+      product: mockProduct,
+    });
+    (client.reports.getReports as ReturnType<typeof vi.fn>).mockResolvedValue(emptyReports);
+    (client.products.getCoolingStatus as ReturnType<typeof vi.fn>).mockResolvedValue({
+      potentialBreach: true,
+    });
+
+    renderProductView();
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('A potential cooling chain breach was detected for this product. Quality may be affected.'),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('does not show cooling breach warning when potentialBreach is false', async () => {
+    const { client } = await import('@foodchestra/sdk');
+    (client.products.getByBarcode as ReturnType<typeof vi.fn>).mockResolvedValue({
+      found: true,
+      product: mockProduct,
+    });
+    (client.reports.getReports as ReturnType<typeof vi.fn>).mockResolvedValue(emptyReports);
+    (client.products.getCoolingStatus as ReturnType<typeof vi.fn>).mockResolvedValue({
+      potentialBreach: false,
+    });
+
+    renderProductView();
+
+    await waitFor(() => expect(screen.getByText('Test Chocolate')).toBeInTheDocument());
+    expect(screen.queryByText(/cooling chain breach/)).not.toBeInTheDocument();
+  });
+
+  it('still shows product when cooling status fetch fails', async () => {
+    const { client } = await import('@foodchestra/sdk');
+    (client.products.getByBarcode as ReturnType<typeof vi.fn>).mockResolvedValue({
+      found: true,
+      product: mockProduct,
+    });
+    (client.reports.getReports as ReturnType<typeof vi.fn>).mockResolvedValue(emptyReports);
+    (client.products.getCoolingStatus as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('cooling error'));
+
+    renderProductView();
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Chocolate')).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/cooling chain breach/)).not.toBeInTheDocument();
   });
 });
