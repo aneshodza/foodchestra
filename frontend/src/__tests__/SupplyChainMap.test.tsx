@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import SupplyChainMap from '../components/SupplyChainMap';
 
@@ -7,6 +7,7 @@ const { mockPolylineInstance, mockFitBounds } = vi.hoisted(() => {
     arrowheads: vi.fn().mockReturnThis(),
     addTo: vi.fn().mockReturnThis(),
     remove: vi.fn(),
+    on: vi.fn().mockReturnThis(),
   };
   return { mockPolylineInstance, mockFitBounds: vi.fn() };
 });
@@ -26,7 +27,7 @@ vi.mock('react-leaflet', () => ({
   Marker: ({ children }: React.PropsWithChildren<Record<string, unknown>>) => (
     <div data-testid="map-marker">{children}</div>
   ),
-  Popup: ({ children }: React.PropsWithChildren) => (
+  Popup: ({ children }: React.PropsWithChildren<Record<string, unknown>>) => (
     <div data-testid="map-popup">{children}</div>
   ),
   useMap: () => ({ fitBounds: mockFitBounds }),
@@ -34,11 +35,25 @@ vi.mock('react-leaflet', () => ({
 
 vi.mock('leaflet-arrowheads', () => ({}));
 
+vi.mock('recharts', () => ({
+  LineChart: ({ children }: React.PropsWithChildren<Record<string, unknown>>) => (
+    <div data-testid="temperature-chart">{children}</div>
+  ),
+  Line: () => null,
+  XAxis: () => null,
+  YAxis: () => null,
+  Tooltip: () => null,
+  CartesianGrid: () => null,
+}));
+
 vi.mock('@foodchestra/sdk', () => ({
   client: {
     batches: {
       getByBatchNumber: vi.fn(),
       getSupplyChain: vi.fn(),
+    },
+    coolingChain: {
+      getCoolingChain: vi.fn(),
     },
   },
 }));
@@ -92,11 +107,36 @@ const sampleSupplyChain = {
   edges: [{ fromNodeId: 'node-a', toNodeId: 'node-b' }],
 };
 
-async function setupMocks(batches = [sampleBatch], supplyChain = sampleSupplyChain) {
+const sampleCoolingData = [
+  {
+    edgeId: 'edge-1',
+    fromNodeId: 'node-a',
+    toNodeId: 'node-b',
+    readings: [
+      { id: 'r-1', edgeId: 'edge-1', recordedAt: '2026-01-10T13:00:00Z', celsius: 4.1 },
+      { id: 'r-2', edgeId: 'edge-1', recordedAt: '2026-01-10T23:00:00Z', celsius: 14.1 },
+    ],
+  },
+];
+
+async function setupMocks(
+  batches = [sampleBatch],
+  supplyChain = sampleSupplyChain,
+  cooling = sampleCoolingData,
+) {
   const { client } = await import('@foodchestra/sdk');
   (client.batches.getByBatchNumber as ReturnType<typeof vi.fn>).mockResolvedValue(batches);
   (client.batches.getSupplyChain as ReturnType<typeof vi.fn>).mockResolvedValue(supplyChain);
+  (client.coolingChain.getCoolingChain as ReturnType<typeof vi.fn>).mockResolvedValue(cooling);
   return client;
+}
+
+/** Capture the click handler registered on the polyline mock and invoke it. */
+function triggerPolylineClick() {
+  const calls = (mockPolylineInstance.on as ReturnType<typeof vi.fn>).mock.calls;
+  const clickCall = calls.find((args) => args[0] === 'click');
+  const handler = clickCall?.[1] as (() => void) | undefined;
+  act(() => handler?.());
 }
 
 afterEach(() => {
@@ -144,11 +184,25 @@ describe('SupplyChainMap', () => {
       const { client } = await import('@foodchestra/sdk');
       (client.batches.getByBatchNumber as ReturnType<typeof vi.fn>).mockResolvedValue([sampleBatch]);
       (client.batches.getSupplyChain as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('DB error'));
+      (client.coolingChain.getCoolingChain as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
       render(<SupplyChainMap barcode="7610800749004" batchNumber="LOT-2026-JW-042" />);
 
       await waitFor(() => {
         expect(screen.getByText('Failed to load supply chain data.')).toBeInTheDocument();
+      });
+    });
+
+    it('still renders the map when getCoolingChain fails', async () => {
+      const { client } = await import('@foodchestra/sdk');
+      (client.batches.getByBatchNumber as ReturnType<typeof vi.fn>).mockResolvedValue([sampleBatch]);
+      (client.batches.getSupplyChain as ReturnType<typeof vi.fn>).mockResolvedValue(sampleSupplyChain);
+      (client.coolingChain.getCoolingChain as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('timeout'));
+
+      render(<SupplyChainMap barcode="7610800749004" batchNumber="LOT-2026-JW-042" />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('map-container')).toBeInTheDocument();
       });
     });
   });
@@ -271,6 +325,16 @@ describe('SupplyChainMap', () => {
       });
     });
 
+    it('registers a click handler on each polyline', async () => {
+      await setupMocks();
+
+      render(<SupplyChainMap barcode="7610800749004" batchNumber="LOT-2026-JW-042" />);
+
+      await waitFor(() => {
+        expect(mockPolylineInstance.on).toHaveBeenCalledWith('click', expect.any(Function));
+      });
+    });
+
     it('does not create polylines when there are no edges', async () => {
       const L = (await import('leaflet')).default;
       const { client } = await import('@foodchestra/sdk');
@@ -279,6 +343,7 @@ describe('SupplyChainMap', () => {
         ...sampleSupplyChain,
         edges: [],
       });
+      (client.coolingChain.getCoolingChain as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
       render(<SupplyChainMap barcode="7610800749004" batchNumber="LOT-2026-JW-042" />);
 
@@ -328,6 +393,57 @@ describe('SupplyChainMap', () => {
     });
   });
 
+  describe('edge popup (cooling chain)', () => {
+    it('shows the edge popup with a temperature chart when a polyline is clicked', async () => {
+      await setupMocks();
+
+      render(<SupplyChainMap barcode="7610800749004" batchNumber="LOT-2026-JW-042" />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('map-container')).toBeInTheDocument();
+      });
+
+      triggerPolylineClick();
+
+      expect(screen.getByTestId('temperature-chart')).toBeInTheDocument();
+      expect(screen.getByText('Bio-Hof Müller')).toBeInTheDocument();
+      expect(screen.getByText('Jowa AG')).toBeInTheDocument();
+    });
+
+    it('shows "no temperature data" when cooling chain has no readings for the edge', async () => {
+      await setupMocks(
+        [sampleBatch],
+        sampleSupplyChain,
+        [{ edgeId: 'edge-1', fromNodeId: 'node-a', toNodeId: 'node-b', readings: [] }],
+      );
+
+      render(<SupplyChainMap barcode="7610800749004" batchNumber="LOT-2026-JW-042" />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('map-container')).toBeInTheDocument();
+      });
+
+      triggerPolylineClick();
+
+      expect(screen.getByText('No temperature data available.')).toBeInTheDocument();
+      expect(screen.queryByTestId('temperature-chart')).not.toBeInTheDocument();
+    });
+
+    it('shows "no temperature data" when cooling chain returned no data for the edge', async () => {
+      await setupMocks([sampleBatch], sampleSupplyChain, []);
+
+      render(<SupplyChainMap barcode="7610800749004" batchNumber="LOT-2026-JW-042" />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('map-container')).toBeInTheDocument();
+      });
+
+      triggerPolylineClick();
+
+      expect(screen.getByText('No temperature data available.')).toBeInTheDocument();
+    });
+  });
+
   describe('cleanup', () => {
     it('removes polylines when the component unmounts', async () => {
       await setupMocks();
@@ -366,6 +482,19 @@ describe('SupplyChainMap', () => {
 
       await waitFor(() => {
         expect(client.batches.getSupplyChain).toHaveBeenCalledWith('batch-1');
+      });
+    });
+
+    it('calls getCoolingChain with the batch number and barcode', async () => {
+      const client = await setupMocks();
+
+      render(<SupplyChainMap barcode="7610800749004" batchNumber="LOT-2026-JW-042" />);
+
+      await waitFor(() => {
+        expect(client.coolingChain.getCoolingChain).toHaveBeenCalledWith(
+          'LOT-2026-JW-042',
+          '7610800749004',
+        );
       });
     });
   });

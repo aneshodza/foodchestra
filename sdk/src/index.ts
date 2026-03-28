@@ -6,6 +6,7 @@ import { scanRoutes } from './routes/scans.js';
 import { partyRoutes } from './routes/parties.js';
 import { batchRoutes } from './routes/batches.js';
 import { reportRoutes } from './routes/reports.js';
+import { coolingChainRoutes } from './routes/cooling-chain.js';
 
 export { makeHttpHelpers } from './client.js';
 export * from './routes/health.js';
@@ -15,6 +16,7 @@ export * from './routes/scans.js';
 export * from './routes/parties.js';
 export * from './routes/batches.js';
 export * from './routes/reports.js';
+export * from './routes/cooling-chain.js';
 export * from './types/index.js';
 export * from './external/recallswiss.js';
 
@@ -33,6 +35,7 @@ export function createClient(config: SdkConfig) {
     parties: partyRoutes(get),
     batches: batchRoutes(get, post),
     reports: reportRoutes(get, post),
+    coolingChain: coolingChainRoutes(get),
     _http: { get, post }, // escape hatch for one-off calls
   };
 }

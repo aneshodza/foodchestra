@@ -1,10 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet-arrowheads';
+import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import type { LatLngBoundsExpression, LatLngTuple } from 'leaflet';
 import { client } from '@foodchestra/sdk';
-import type { SupplyChain, SupplyChainNode } from '@foodchestra/sdk';
+import type {
+  SupplyChain,
+  SupplyChainNode,
+  CoolingChainEdgeData,
+  CoolingChainReading,
+} from '@foodchestra/sdk';
 import type { PartyType } from '@foodchestra/sdk';
 import './SupplyChainMap.scss';
 
@@ -33,8 +39,11 @@ function createMarkerIcon(partyType: PartyType, isFinal: boolean, isActive: bool
   });
 }
 
-function ArrowPolyline({ positions }: { positions: LatLngTuple[] }) {
+function ArrowPolyline({ positions, onClick }: { positions: LatLngTuple[]; onClick: () => void }) {
   const map = useMap();
+  // Use a ref so the click handler is always fresh without being a useEffect dep.
+  const onClickRef = useRef(onClick);
+  onClickRef.current = onClick;
 
   useEffect(() => {
     const line = L.polyline(positions, { color: POLYLINE_COLOUR, weight: 3, opacity: 0.85 }).arrowheads({
@@ -43,6 +52,7 @@ function ArrowPolyline({ positions }: { positions: LatLngTuple[] }) {
       fill: true,
       yawn: 40,
     });
+    line.on('click', () => onClickRef.current());
     line.addTo(map);
     return () => {
       line.remove();
@@ -82,11 +92,97 @@ function formatTimestamp(ts: string | null): string {
   });
 }
 
+function formatChartTime(ts: number): string {
+  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+interface EdgePopupProps {
+  fromNode: SupplyChainNode;
+  toNode: SupplyChainNode;
+  readings: CoolingChainReading[];
+  onClose: () => void;
+}
+
+function EdgePopup({ fromNode, toNode, readings, onClose }: EdgePopupProps) {
+  const midpoint: LatLngTuple = [
+    (fromNode.location.latitude + toNode.location.latitude) / 2,
+    (fromNode.location.longitude + toNode.location.longitude) / 2,
+  ];
+
+  const chartData = readings.map((r) => ({
+    time: new Date(r.recordedAt).getTime(),
+    celsius: r.celsius,
+  }));
+
+  return (
+    <Popup
+      position={midpoint}
+      maxWidth={280}
+      eventHandlers={{ remove: onClose }}
+    >
+      <div className="supply-chain-map__edge-popup">
+        <p className="supply-chain-map__edge-popup-route">
+          {fromNode.location.party.name}
+          <span className="material-icons supply-chain-map__edge-popup-arrow">arrow_forward</span>
+          {toNode.location.party.name}
+        </p>
+        {readings.length === 0 ? (
+          <p className="supply-chain-map__popup-detail">No temperature data available.</p>
+        ) : (
+          <LineChart width={256} height={128} data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" />
+            <XAxis
+              dataKey="time"
+              type="number"
+              domain={['dataMin', 'dataMax']}
+              tickCount={4}
+              tickFormatter={formatChartTime}
+              tick={{ fontSize: 10 }}
+            />
+            <YAxis
+              unit="°"
+              width={32}
+              tick={{ fontSize: 10 }}
+              domain={['auto', 'auto']}
+            />
+            <Tooltip
+              labelFormatter={(t) =>
+                new Date(t as number).toLocaleString([], {
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })
+              }
+              formatter={(val) => [`${val}°C`, 'Temp']}
+            />
+            <Line
+              type="monotone"
+              dataKey="celsius"
+              stroke={POLYLINE_COLOUR}
+              dot={false}
+              strokeWidth={2}
+            />
+          </LineChart>
+        )}
+      </div>
+    </Popup>
+  );
+}
+
+interface SelectedEdge {
+  fromNode: SupplyChainNode;
+  toNode: SupplyChainNode;
+  data: CoolingChainEdgeData | undefined;
+}
+
 export default function SupplyChainMap({ batchNumber, barcode }: SupplyChainMapProps) {
   const [supplyChain, setSupplyChain] = useState<SupplyChain | null>(null);
+  const [coolingByEdge, setCoolingByEdge] = useState<Map<string, CoolingChainEdgeData>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openPopupId, setOpenPopupId] = useState<string | null>(null);
+  const [selectedEdge, setSelectedEdge] = useState<SelectedEdge | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -102,10 +198,27 @@ export default function SupplyChainMap({ batchNumber, barcode }: SupplyChainMapP
           return;
         }
 
-        const chain = await client.batches.getSupplyChain(batches[0].id);
+        const [chainResult, coolingResult] = await Promise.allSettled([
+          client.batches.getSupplyChain(batches[0].id),
+          client.coolingChain.getCoolingChain(batchNumber, barcode),
+        ]);
         if (cancelled) return;
 
+        if (chainResult.status === 'rejected') {
+          setError('Failed to load supply chain data.');
+          setLoading(false);
+          return;
+        }
+
+        const chain = chainResult.value;
+        const cooling = coolingResult.status === 'fulfilled' ? coolingResult.value : [];
+
+        const edgeMap = new Map<string, CoolingChainEdgeData>(
+          cooling.map((c) => [`${c.fromNodeId}:${c.toNodeId}`, c]),
+        );
+
         setSupplyChain(chain);
+        setCoolingByEdge(edgeMap);
       } catch {
         if (!cancelled) setError('Failed to load supply chain data.');
       } finally {
@@ -141,18 +254,6 @@ export default function SupplyChainMap({ batchNumber, barcode }: SupplyChainMapP
 
   const nodeById = new Map(supplyChain.nodes.map((n) => [n.id, n]));
   const fromNodeIds = new Set(supplyChain.edges.map((e) => e.fromNodeId));
-
-  const polylines = supplyChain.edges
-    .map((edge) => {
-      const from = nodeById.get(edge.fromNodeId);
-      const to = nodeById.get(edge.toNodeId);
-      if (!from || !to) return null;
-      return [
-        [from.location.latitude, from.location.longitude] as LatLngTuple,
-        [to.location.latitude, to.location.longitude] as LatLngTuple,
-      ];
-    })
-    .filter((line): line is LatLngTuple[] => line !== null);
 
   // Default centre on Switzerland if no nodes
   const defaultCenter: LatLngTuple = [46.8182, 8.2275];
@@ -208,9 +309,36 @@ export default function SupplyChainMap({ batchNumber, barcode }: SupplyChainMapP
           </Marker>
         ))}
 
-        {polylines.map((positions, i) => (
-          <ArrowPolyline key={i} positions={positions} />
-        ))}
+        {supplyChain.edges.map((edge, i) => {
+          const from = nodeById.get(edge.fromNodeId);
+          const to = nodeById.get(edge.toNodeId);
+          if (!from || !to) return null;
+          return (
+            <ArrowPolyline
+              key={i}
+              positions={[
+                [from.location.latitude, from.location.longitude],
+                [to.location.latitude, to.location.longitude],
+              ]}
+              onClick={() =>
+                setSelectedEdge({
+                  fromNode: from,
+                  toNode: to,
+                  data: coolingByEdge.get(`${edge.fromNodeId}:${edge.toNodeId}`),
+                })
+              }
+            />
+          );
+        })}
+
+        {selectedEdge && (
+          <EdgePopup
+            fromNode={selectedEdge.fromNode}
+            toNode={selectedEdge.toNode}
+            readings={selectedEdge.data?.readings ?? []}
+            onClose={() => setSelectedEdge(null)}
+          />
+        )}
       </MapContainer>
     </div>
   );

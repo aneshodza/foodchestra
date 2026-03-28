@@ -236,7 +236,8 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 - `mcp/` is scaffolded — see details below
 - `agent/` is scaffolded and running — see details below
 - `docker-compose.yml` — Postgres 16-alpine; `docker compose up -d` to start
-- Next step: wire up the core scan→result flow (complaints, supply chain, cooling chain)
+- Cooling chain is fully implemented — DB, BE router, SDK, MCP, FE chart — see section below
+- Next step: auth hardening (CASL + Passport + JWT), Cypress E2E tests, coverage reports
 
 ## What exists in backend/
 - `src/server.ts` — runs migrations, fires initial recall sync, starts hourly cron, then starts Express on `PORT` (default 3000)
@@ -259,14 +260,19 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 - `src/routers/parties.router.ts` — `GET /parties` (all parties) + `GET /parties/:id/locations` (locations for a party, 404 if missing)
 - `src/routers/batches.router.ts` — `POST /batches`, `GET /batches/:id`, `GET /batches/by-number/:batchNumber?barcode=` (optional barcode filter, array, 404 if none), `GET /batches/:id/supply-chain` (full DAG with nodes+edges, party+location embedded)
 - `src/repositories/supply-chain.repository.ts` — `SupplyChainRepository` with all DB queries; `findByBatchNumber(batchNumber, barcode?)` accepts optional barcode to narrow to one product
-- Test files: `parties.router.test.ts` (7 tests) + `batches.router.test.ts` (17 tests)
+- `src/migrations/007_create_cooling_chain.sql` — adds UUID `id` column to `supply_chain_edges` (with UNIQUE constraint, idempotent via `DO $$ BEGIN ... EXCEPTION WHEN duplicate_table THEN NULL; END $$;`); creates `cooling_chain_readings` table (UUID PK, `edge_id` FK → `supply_chain_edges(id)`, `recorded_at TIMESTAMPTZ`, `celsius NUMERIC(5,2)`); index on `(edge_id, recorded_at)`
+- `src/migrations/008_seed_cooling_chain.sql` — seeds 44 temperature readings across the 4 seeded edges using `SELECT e.id FROM supply_chain_edges WHERE from_node_id = ... AND to_node_id = ...` (avoids hardcoding generated UUIDs); realistic cold-chain data with deliberate spikes on edges A and B
+- `src/routers/cooling-chain.router.ts` — `GET /batches/by-number/:batchNumber/supply-chain/cooling?barcode=` → looks up batch by number (optional barcode to disambiguate), 400 if multiple match without barcode, fetches supply chain, returns `CoolingChainEdgeData[]`; swagger-documented
+- `src/repositories/cooling-chain.repository.ts` — `CoolingChainRepository` with `findByEdge(edgeId)`, `findBySupplyChain(supplyChainId)` (JOINs through edges→nodes, groups by edgeId in JS using a Map), `bulkCreate(readings[])` (dynamic placeholder generation)
+- Test files: `parties.router.test.ts` (7 tests) + `batches.router.test.ts` (17 tests) + `cooling-chain.router.test.ts` (9 tests) + `cooling-chain.repository.test.ts` (13 tests)
 - Swagger UI live at `http://localhost:3000/docs`
 - `nodemon.json` — watch mode via `tsx --env-file .env`, run with `npm run dev`
 - `.eslintrc.json` — TypeScript ESLint configured
 - `npm run lint` / `npm run lint:fix` — work from both `backend/` and repo root
 - Tests: Jest + ts-jest + supertest; run with `npm test` (from `backend/`)
-- Test files in `src/__tests__/`: `alive.router.test.ts`, `barcode.test.ts`, `products.router.test.ts`, `recalls.router.test.ts`, `recalls.service.test.ts`, `scans.router.test.ts`, `parties.router.test.ts`, `batches.router.test.ts`
-- Test pattern: mount router on a bare express app, mock the repository with `jest.mock()`, use `supertest` to fire requests
+- Test files in `src/__tests__/`: `alive.router.test.ts`, `barcode.test.ts`, `products.router.test.ts`, `recalls.router.test.ts`, `recalls.service.test.ts`, `scans.router.test.ts`, `parties.router.test.ts`, `batches.router.test.ts`, `cooling-chain.router.test.ts`, `cooling-chain.repository.test.ts`
+- Test pattern (routers): mount router on a bare express app, mock the repository with `jest.mock()`, use `supertest` to fire requests
+- Test pattern (repositories): mock `pool` via `jest.mock('../db', () => ({ pool: { query: jest.fn() } }))`, call repository methods directly, assert on `pool.query` call args and mapped return values
 
 ## What exists in sdk/
 - `src/index.ts` — exports `createClient(config)` factory + default `client` (reads `FOODCHESTRA_API_URL`, falls back to `http://localhost:3000`)
@@ -276,6 +282,8 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 - `src/routes/scans.ts` — `scanRoutes(post)` factory → `{ logScan(CreateScanInput) }`
 - `src/routes/parties.ts` — `partyRoutes(get)` factory → `{ getAll(), getLocations(partyId) }`
 - `src/routes/batches.ts` — `batchRoutes(get, post)` factory → `{ create(input), getById(id), getByBatchNumber(batchNumber, barcode?), getSupplyChain(id) }`
+- `src/routes/cooling-chain.ts` — `coolingChainRoutes(get)` factory → `{ getCoolingChain(batchNumber, barcode?) }` → `GET /batches/by-number/:batchNumber/supply-chain/cooling?barcode=`
+- `src/types/cooling-chain.ts` — `CoolingChainReading`, `CoolingChainEdgeData`, `CreateReadingInput` interfaces
 - `src/types/recalls.ts` — `Recall` + `RecallsResponse` interfaces
 - `src/types/scans.ts` — `Scan`, `CreateScanInput`, `ScanType` interfaces
 - `src/types/parties.ts` — `PartyType`, `Party`, `PartyLocation` interfaces
@@ -296,6 +304,7 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 - `src/tools/recalls.ts` — wraps `client.recalls.getRecalls()` as `get_recalls` tool (optional `page`, `pageSize`)
 - `src/tools/parties.ts` — `get_parties` + `get_party_locations` tools
 - `src/tools/batches.ts` — `get_batch_by_id`, `get_batch_by_number` (optional `barcode` param), `get_supply_chain`, `create_batch` tools
+- `src/tools/cooling-chain.ts` — `get_cooling_chain(batchNumber, barcode?)` tool; wraps `client.coolingChain.getCoolingChain`
 - Pattern for adding tools: create `src/tools/<concern>.ts` exporting `registerXxxTools(server, client)`, call it in `index.ts`
 - `npm run build` (from `mcp/`) — compiles to `dist/` (ESM, NodeNext)
 - `npm run start` — runs the compiled server (stdio, for use with Claude Desktop / agent)
@@ -322,7 +331,7 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 - `src/components/shared/` — reusable components: Button (variant prop), HomeIcon, BackendStatus, ScannerView; all new shared UI goes here
 - `src/components/ScannerPage.tsx` — scan entry point: QR / Barcode buttons → `ScannerView` → navigates to ProductView on barcode scan; `?scanned=` fallback for non-barcode results; QR mode is a TODO stub
 - `src/components/ProductView.tsx` — product detail page at `/products/:barcode`; fetches product + reports in parallel; shows nutri-score, image, ingredients, quantity, stores, report warning/count; Trace Journey section with batch number input + navigate button
-- `src/components/SupplyChainMap.tsx` — OpenStreetMap component (react-leaflet v4 + leaflet-arrowheads); props `{ barcode, batchNumber }`; fetches batch then supply chain; renders custom pin markers (color-coded by party type, dim non-final/hover/active opacity) + red directional polylines; auto-fits bounds
+- `src/components/SupplyChainMap.tsx` — OpenStreetMap component (react-leaflet v4 + leaflet-arrowheads + recharts); props `{ barcode, batchNumber }`; fetches supply chain + cooling chain in parallel (`Promise.allSettled` — map renders even if cooling fails); renders custom pin markers (color-coded by party type, dim non-final/hover/active opacity) + red clickable directional polylines; clicking an edge opens a `<Popup>` at the midpoint with a recharts `LineChart` of time vs celsius; "No temperature data available" shown when edge has no readings; auto-fits bounds
 - `src/components/SupplyChainMapPage.tsx` — page wrapper at `/products/:barcode/maps/:batchNumber`; back link preserves `?batchNumber=` on return to ProductView
 - `src/utils/barcode.ts` — `looksLikeBarcode(text)`: 7+ digit guard used to validate scan results before navigation
 - `src/styles/variables/_colours.scss` — brand/neutral/semantic colour tokens; `_breakpoints.scss` — BS5-compatible breakpoints + `respond-up()` mixin
@@ -390,7 +399,7 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 - Monorepo: `backend/`, `frontend/`, `sdk/`, `agent/`, `mcp/`
 - Agent tools call SDK functions directly (MCP is an optional layer on top)
 - Supply chain is a DAG stored as `supply_chain_nodes` + `supply_chain_edges` (adjacency list). Nodes reference `party_locations`; locations reference `parties`. A `batches` table ties a product barcode + batch number to a supply chain. Traverse with recursive CTE from leaf nodes (sources) to the final shelf node.
-- Cooling chain is still to be implemented
+- Cooling chain: `cooling_chain_readings` table with FK to `supply_chain_edges(id)` (edges got a surrogate UUID `id` column in migration 007). Route: `GET /batches/by-number/:batchNumber/supply-chain/cooling?barcode=`. FE renders a recharts LineChart in a Leaflet popup when an edge is clicked on the supply chain map
 - RecallSwiss: fetched once on startup + every 1h via in-process `node-cron`, stored in the `recalls` DB table. All HTTP fetch logic lives in `sdk/src/external/recallswiss.ts`
 - All external API HTTP calls go in `sdk/src/external/<source>.ts` — centralised fetch layer; BE services import from there
 - DB migrations: plain SQL files in `backend/src/migrations/*.sql`, applied in filename order at server startup via `runMigrations()`
@@ -457,3 +466,13 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 - Leaflet CSS imported globally in `App.scss`.
 - Test counts: backend 70 → 72 (2 new barcode-filter tests in `batches.router.test.ts`), frontend 111 tests across 10 files (added `SupplyChainMap.test.tsx` 27 tests, `SupplyChainMapPage.test.tsx` 8 tests, +12 Trace Journey tests in `ProductView.test.tsx`).
 - Leaflet/react-leaflet mocking pattern: `vi.hoisted()` for polyline instance + fitBounds spy; mock `MapContainer`/`Marker`/`Popup` as plain divs; mock `useMap` returning the hoisted spy; mock `leaflet-arrowheads` as empty module.
+
+## Cooling Chain (feature/cooling-chain)
+- DB: `supply_chain_edges` got a surrogate UUID `id` column (migration 007); `cooling_chain_readings` table (migration 007) has FK to that id; 44 seed readings across 4 edges (migration 008) with realistic cold-chain spikes
+- BE: `GET /batches/by-number/:batchNumber/supply-chain/cooling?barcode=` — 400 if multiple batches match without barcode, 404 if no batch/supply chain, returns `CoolingChainEdgeData[]`
+- Repository: `CoolingChainRepository.findBySupplyChain` JOINs readings→edges→nodes, groups by edgeId in JS using a Map; `bulkCreate` uses dynamic `$N` placeholder generation; `celsius` is always `Number(r.celsius)` (pg returns NUMERIC as string)
+- SDK: `client.coolingChain.getCoolingChain(batchNumber, barcode?)` at `sdk/src/routes/cooling-chain.ts`; types at `sdk/src/types/cooling-chain.ts`
+- MCP: `get_cooling_chain(batchNumber, barcode?)` tool at `mcp/src/tools/cooling-chain.ts`
+- FE: `SupplyChainMap` fetches cooling chain in parallel with supply chain; polylines now accept an `onClick` prop (handler stored in a `useRef` to avoid recreating polylines on state changes); clicking an edge opens a standalone `<Popup position={midpoint}>` (react-leaflet) with a recharts `LineChart`; gracefully degrades to "No temperature data available" if cooling fetch fails or edge has no readings
+- recharts (`recharts` npm package) added to frontend — used only for the `LineChart` in the edge popup
+- Tests: backend 91 → 105 (9 new in `cooling-chain.router.test.ts`, 13 new in `cooling-chain.repository.test.ts`); frontend 111 → 132 (7 new edge popup + cooling chain tests in `SupplyChainMap.test.tsx`, recharts mocked as `vi.mock('recharts', ...)`)
