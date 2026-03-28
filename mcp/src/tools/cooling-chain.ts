@@ -15,8 +15,13 @@ export function registerCoolingChainTools(server: McpServer, client: Client) {
     'Get all temperature readings for each transport edge in a batch\'s supply chain, grouped by edge. Use this to detect cold chain breaks or temperature anomalies during transit.',
     GetCoolingChainInput.shape,
     async ({ batchNumber, barcode }: z.infer<typeof GetCoolingChainInput>) => {
-      const result = await client.coolingChain.getCoolingChain(batchNumber, barcode);
-      return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
+      try {
+        const result = await client.coolingChain.getCoolingChain(batchNumber, barcode);
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return { content: [{ type: 'text' as const, text: `Error: ${message}` }], isError: true };
+      }
     },
   );
 }

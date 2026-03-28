@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { client } from '@foodchestra/sdk';
 import type { Product, ReportsResponse } from '@foodchestra/sdk';
+import { useSetAgentContext } from '../context/AgentContext';
 import Button from './shared/Button';
 import GlassBlock from './shared/GlassBlock';
 import ReportModal from './shared/ReportModal';
@@ -15,7 +16,13 @@ const ProductView = () => {
   const [batchInput, setBatchInput] = useState(urlBatchNumber || '');
   const [activeBatch, setActiveBatch] = useState(urlBatchNumber || '');
   const [product, setProduct] = useState<Product | null>(null);
+  useSetAgentContext(
+    product
+      ? `Page: Product Detail. Barcode: ${barcode}. Batch number: ${urlBatchNumber || 'not provided'}. Product: ${product.name || 'unknown'}. Nutri-score: ${product.nutriscoreGrade || 'unknown'}.`
+      : `Page: Product Detail. Barcode: ${barcode}. Product is still loading.`,
+  );
   const [reports, setReports] = useState<ReportsResponse | null>(null);
+  const [coolingBreach, setCoolingBreach] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
@@ -29,7 +36,8 @@ const ProductView = () => {
     Promise.allSettled([
       client.products.getByBarcode(barcode),
       client.reports.getReports(barcode),
-    ]).then(([productResult, reportsResult]) => {
+      client.products.getCoolingStatus(barcode),
+    ]).then(([productResult, reportsResult, coolingResult]) => {
       if (productResult.status === 'fulfilled') {
         const res = productResult.value;
         if (res.found && res.product) {
@@ -47,6 +55,11 @@ const ProductView = () => {
       } else {
         console.error('Failed to fetch reports:', reportsResult.reason);
       }
+
+      if (coolingResult.status === 'fulfilled') {
+        setCoolingBreach(coolingResult.value?.potentialBreach ?? false);
+      }
+      // Cooling status is optional — degrade gracefully on failure
 
       setLoading(false);
     });
@@ -92,6 +105,13 @@ const ProductView = () => {
         <div className="product-view__warning">
           <span className="material-icons">warning</span>
           <span>Multiple users have reported issues with this product recently.</span>
+        </div>
+      )}
+
+      {coolingBreach && (
+        <div className="product-view__warning">
+          <span className="material-icons">thermostat</span>
+          <span>A potential cooling chain breach was detected for this product. Quality may be affected.</span>
         </div>
       )}
 

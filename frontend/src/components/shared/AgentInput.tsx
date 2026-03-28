@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
+import { client } from '@foodchestra/sdk';
+import { useAgentContext } from '../../context/AgentContext';
 import GlassBlock from './GlassBlock';
 import './AgentInput.scss';
-
-const AGENT_URL = import.meta.env.VITE_AGENT_URL || 'http://localhost:3001';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -16,6 +16,7 @@ function AgentInput() {
   const [isOpen, setIsOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { context } = useAgentContext();
 
   // Listen for auto-messages dispatched by other components (e.g. after report filing)
   useEffect(() => {
@@ -45,17 +46,20 @@ function AgentInput() {
     setMessages((prev) => [...prev, { role: 'user', content: text }]);
     setLoading(true);
 
+    const history = messages.map((m) =>
+      m.role === 'user' ? `USER: ${m.content}` : `THE AGENT: ${m.content}`,
+    );
+
     try {
-      const res = await fetch(`${AGENT_URL}/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text }),
-      });
-
-      if (!res.ok) throw new Error('Agent request failed');
-
-      const data = await (res.json() as Promise<{ response: string }>);
-      setMessages((prev) => [...prev, { role: 'assistant', content: data.response }]);
+      const result = await client.chat.sendMessage(
+        text,
+        context || undefined,
+        history.length ? history : undefined,
+      );
+      if (result.toolSteps.length > 0) {
+        console.log('[AgentInput] Tools used:', result.toolSteps);
+      }
+      setMessages((prev) => [...prev, { role: 'assistant', content: result.response }]);
     } catch {
       setMessages((prev) => [
         ...prev,

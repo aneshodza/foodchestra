@@ -21,3 +21,7 @@ export interface ProductLookupResponse {
   found: boolean;
   product: Product | null;
 }
+
+export interface CoolingStatusResponse {
+  potentialBreach: boolean;
+}

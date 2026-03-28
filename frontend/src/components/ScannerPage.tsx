@@ -4,12 +4,16 @@ import { client } from '@foodchestra/sdk';
 import { looksLikeBarcode } from '../utils/barcode';
 import { parseGs1QrCode } from '../utils/gs1';
 import type { ScanMode } from '../types';
+import { useSetAgentContext } from '../context/AgentContext';
 import Button from './shared/Button';
 import ScannerView from './shared/ScannerView';
 import GlassBlock from './shared/GlassBlock';
 import './ScannerPage.scss';
 
 const ScannerPage = () => {
+  useSetAgentContext(
+    'Page: Home / Scanner. The user has not yet scanned any product. No barcode, batch number, or product information is available.',
+  );
   const [scanning, setScanning] = useState(false);
   const [scanMode, setScanMode] = useState<ScanMode>('qr');
   const [qrError, setQrError] = useState<string | null>(null);

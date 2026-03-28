@@ -15,8 +15,13 @@ export function registerRecallTools(server: McpServer, client: Client) {
     'List Swiss government recalls from RecallSwiss. Returns product recall notices with names and descriptions in DE/FR/IT. Data is refreshed every hour.',
     GetRecallsInput.shape,
     async ({ page, pageSize }: z.infer<typeof GetRecallsInput>) => {
-      const result = await client.recalls.getRecalls({ page, pageSize });
-      return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
+      try {
+        const result = await client.recalls.getRecalls({ page, pageSize });
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return { content: [{ type: 'text' as const, text: `Error: ${message}` }], isError: true };
+      }
     },
   );
 }

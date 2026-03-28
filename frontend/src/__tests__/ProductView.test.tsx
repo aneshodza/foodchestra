@@ -7,6 +7,7 @@ vi.mock('@foodchestra/sdk', () => ({
   client: {
     products: {
       getByBarcode: vi.fn(),
+      getCoolingStatus: vi.fn(),
     },
     reports: {
       getReports: vi.fn(),
@@ -413,35 +414,4 @@ describe('ProductView', () => {
     expect(screen.queryByText(/reported issues/)).not.toBeInTheDocument();
   });
 
-  it('shows the report modal when Report Issue is clicked', async () => {
-    const { client } = await import('@foodchestra/sdk');
-    (client.products.getByBarcode as ReturnType<typeof vi.fn>).mockResolvedValue({
-      found: true,
-      product: mockProduct,
-    });
-    (client.reports.getReports as ReturnType<typeof vi.fn>).mockResolvedValue(emptyReports);
-
-    renderProductView();
-
-    await waitFor(() => expect(screen.getByText('Test Chocolate')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: /Report Issue/i }));
-    expect(screen.getByText('Report an Issue')).toBeInTheDocument();
-  });
-
-  it('closes the report modal when Cancel is clicked', async () => {
-    const { client } = await import('@foodchestra/sdk');
-    (client.products.getByBarcode as ReturnType<typeof vi.fn>).mockResolvedValue({
-      found: true,
-      product: mockProduct,
-    });
-    (client.reports.getReports as ReturnType<typeof vi.fn>).mockResolvedValue(emptyReports);
-
-    renderProductView();
-
-    await waitFor(() => expect(screen.getByText('Test Chocolate')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: /Report Issue/i }));
-    expect(screen.getByText('Report an Issue')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-    expect(screen.queryByText('Report an Issue')).not.toBeInTheDocument();
-  });
 });

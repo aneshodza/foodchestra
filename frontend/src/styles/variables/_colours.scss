@@ -27,6 +27,9 @@ $colour-nutriscore-c: #fecb02;
 $colour-nutriscore-d: #ee8100;
 $colour-nutriscore-e: #e63e11;
 
+// ── Cooling chain status colours ──────────────────────────────────────────────
+$colour-chain-ok: #0d6efd; // blue — no temperature breach; breach reuses $colour-danger
+
 // ── Supply chain party type colours ───────────────────────────────────────────
 $colour-party-farmer: #2e7d32;
 $colour-party-processor: #1565c0;

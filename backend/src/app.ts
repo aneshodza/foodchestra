@@ -10,6 +10,7 @@ import partiesRouter from './routers/parties.router';
 import batchesRouter from './routers/batches.router';
 import reportsRouter from './routers/reports.router';
 import coolingChainRouter from './routers/cooling-chain.router';
+import chatRouter from './routers/chat.router';
 
 const app = express();
 
@@ -35,6 +36,19 @@ app.use(
 
 app.use(express.json());
 
+app.use((req, res, next) => {
+  const ts = new Date().toISOString();
+  console.log(`[${ts}] → ${req.method} ${req.path}`, Object.keys(req.body ?? {}).length ? req.body : '');
+
+  const originalJson = res.json.bind(res);
+  res.json = (body) => {
+    console.log(`[${new Date().toISOString()}] ← ${req.method} ${req.path} ${res.statusCode}`, body);
+    return originalJson(body);
+  };
+
+  next();
+});
+
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/alive', aliveRouter);
 app.use('/products', productsRouter);
@@ -44,5 +58,6 @@ app.use('/parties', partiesRouter);
 app.use('/batches', batchesRouter);
 app.use('/products', reportsRouter);
 app.use('/batches', coolingChainRouter);
+app.use('/chat', chatRouter);
 
 export default app;

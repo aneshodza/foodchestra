@@ -5,7 +5,7 @@ import { type createClient } from '@foodchestra/sdk';
 type Client = ReturnType<typeof createClient>;
 
 const GetBatchByIdInput = z.object({
-  id: z.string().uuid().describe('UUID of the batch'),
+  id: z.string().describe('UUID of the batch'),
 });
 
 const GetBatchByNumberInput = z.object({
@@ -24,28 +24,43 @@ export function registerBatchTools(server: McpServer, client: Client) {
     'Get a batch by its UUID.',
     GetBatchByIdInput.shape,
     async ({ id }: z.infer<typeof GetBatchByIdInput>) => {
-      const result = await client.batches.getById(id);
-      return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
+      try {
+        const result = await client.batches.getById(id);
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return { content: [{ type: 'text' as const, text: `Error: ${message}` }], isError: true };
+      }
     },
   );
 
   server.tool(
     'get_batch_by_number',
-    'Find batches by batch number (as printed on the product). May return multiple results if different products share the same batch number string.',
+    'Find batches by batch number (as printed on the product). Returns the batch including its UUID id field. Pass that id directly to get_supply_chain — do not try to create a new batch if one already exists.',
     GetBatchByNumberInput.shape,
     async ({ batchNumber, barcode }: z.infer<typeof GetBatchByNumberInput>) => {
-      const result = await client.batches.getByBatchNumber(batchNumber, barcode);
-      return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
+      try {
+        const result = await client.batches.getByBatchNumber(batchNumber, barcode);
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return { content: [{ type: 'text' as const, text: `Error: ${message}` }], isError: true };
+      }
     },
   );
 
   server.tool(
     'get_supply_chain',
-    'Get the full supply chain for a batch by batch UUID. Returns all nodes (stops) with their location and party info, plus the edges connecting them.',
+    'Get the full supply chain for a batch by batch UUID (the id field from get_batch_by_number). Returns all nodes (stops) with their location and party info, plus the edges connecting them. An empty nodes array means no supply chain data exists for this batch.',
     GetBatchByIdInput.shape,
     async ({ id }: z.infer<typeof GetBatchByIdInput>) => {
-      const result = await client.batches.getSupplyChain(id);
-      return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
+      try {
+        const result = await client.batches.getSupplyChain(id);
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return { content: [{ type: 'text' as const, text: `Error: ${message}` }], isError: true };
+      }
     },
   );
 
@@ -54,8 +69,13 @@ export function registerBatchTools(server: McpServer, client: Client) {
     'Create a new batch for a product.',
     CreateBatchInput.shape,
     async ({ productBarcode, batchNumber }: z.infer<typeof CreateBatchInput>) => {
-      const result = await client.batches.create({ productBarcode, batchNumber });
-      return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
+      try {
+        const result = await client.batches.create({ productBarcode, batchNumber });
+        return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return { content: [{ type: 'text' as const, text: `Error: ${message}` }], isError: true };
+      }
     },
   );
 }

@@ -8,7 +8,7 @@ vi.mock('@foodchestra/sdk', () => ({
   client: {
     health: { getAlive: vi.fn().mockResolvedValue({ status: 'ok' }) },
     scans: { logScan: vi.fn().mockResolvedValue({}) },
-    products: { getByBarcode: vi.fn().mockReturnValue(new Promise(() => {})) },
+    products: { getByBarcode: vi.fn().mockReturnValue(new Promise(() => {})), getCoolingStatus: vi.fn().mockReturnValue(new Promise(() => {})) },
     reports: { getReports: vi.fn().mockReturnValue(new Promise(() => {})), createReport: vi.fn().mockReturnValue(new Promise(() => {})) },
   },
 }));
