@@ -26,6 +26,23 @@ afterEach(() => {
 });
 
 describe('App', () => {
+  it('renders the agent input bar on the scanner page', () => {
+    render(<App />);
+    expect(screen.getByPlaceholderText('Ask about this product…')).toBeInTheDocument();
+  });
+
+  it('renders the agent input bar on the product page', () => {
+    window.history.pushState({}, '', '/products/12345678');
+    render(<App />);
+    expect(screen.getByPlaceholderText('Ask about this product…')).toBeInTheDocument();
+  });
+
+  it('renders the agent input bar on the report page', () => {
+    window.history.pushState({}, '', '/products/12345678/report');
+    render(<App />);
+    expect(screen.getByPlaceholderText('Ask about this product…')).toBeInTheDocument();
+  });
+
   it('renders the scanner page at /', () => {
     render(<App />);
     expect(screen.getByRole('button', { name: 'Scan QR Code' })).toBeInTheDocument();

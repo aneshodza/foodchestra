@@ -4,12 +4,15 @@ import { client } from '@foodchestra/sdk';
 import { looksLikeBarcode } from '../utils/barcode';
 import { parseGs1QrCode } from '../utils/gs1';
 import type { ScanMode } from '../types';
+import { useSetAgentContext } from '../context/AgentContext';
 import HomeIcon from './shared/HomeIcon';
 import Button from './shared/Button';
 import ScannerView from './shared/ScannerView';
-import AgentInput from './shared/AgentInput';
 
 const ScannerPage = () => {
+  useSetAgentContext(
+    'Page: Home / Scanner. The user has not yet scanned any product. No barcode, batch number, or product information is available.',
+  );
   const [scanning, setScanning] = useState(false);
   const [scanMode, setScanMode] = useState<ScanMode>('qr');
   const [qrError, setQrError] = useState<string | null>(null);
@@ -112,11 +115,6 @@ const ScannerPage = () => {
               )}
             </div>
           </div>
-        </div>
-      </div>
-      <div className="row justify-content-center mt-4">
-        <div className="col-12 col-md-6">
-          <AgentInput />
         </div>
       </div>
     </main>

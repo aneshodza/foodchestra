@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { useAgentContext } from '../../context/AgentContext';
 import './AgentInput.scss';
 
 const MAX_ROWS = 4;
@@ -6,9 +7,10 @@ const MAX_ROWS = 4;
 function AgentInput() {
   const [value, setValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { context } = useAgentContext();
 
   const handleSend = () => {
-    console.log(value);
+    console.log({ message: value, context });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
