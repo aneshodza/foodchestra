@@ -8,6 +8,7 @@ import { registerScanTools } from './tools/scans.js';
 import { registerPartyTools } from './tools/parties.js';
 import { registerBatchTools } from './tools/batches.js';
 import { registerReportTools } from './tools/reports.js';
+import { registerCoolingChainTools } from './tools/cooling-chain.js';
 
 const apiUrl = process.env['FOODCHESTRA_API_URL'] ?? 'http://localhost:3000';
 const client = createClient({ baseUrl: apiUrl });
@@ -24,6 +25,7 @@ registerScanTools(server, client);
 registerPartyTools(server, client);
 registerBatchTools(server, client);
 registerReportTools(server, client);
+registerCoolingChainTools(server, client);
 
 const transport = new StdioServerTransport();
 await server.connect(transport);

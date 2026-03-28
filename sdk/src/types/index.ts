@@ -4,3 +4,4 @@ export * from './scans.js';
 export * from './parties.js';
 export * from './batches.js';
 export * from './reports.js';
+export * from './cooling-chain.js';

@@ -1,10 +1,10 @@
+// ── Project variables ─────────────────────────────────────────────────────────
+@use 'styles/variables/colours' as colours;
+
 // ── Third-party imports ───────────────────────────────────────────────────────
 @import 'material-icons/iconfont/material-icons.css';
 @import 'bootstrap/scss/bootstrap';
 @import 'leaflet/dist/leaflet.css';
-
-// ── Project variables ─────────────────────────────────────────────────────────
-@use 'styles/variables/colours' as colours;
 
 // ── Global base styles ────────────────────────────────────────────────────────
 *,

@@ -9,6 +9,7 @@ import scansRouter from './routers/scans.router';
 import partiesRouter from './routers/parties.router';
 import batchesRouter from './routers/batches.router';
 import reportsRouter from './routers/reports.router';
+import coolingChainRouter from './routers/cooling-chain.router';
 
 const app = express();
 
@@ -42,5 +43,6 @@ app.use('/scans', scansRouter);
 app.use('/parties', partiesRouter);
 app.use('/batches', batchesRouter);
 app.use('/products', reportsRouter);
+app.use('/batches', coolingChainRouter);
 
 export default app;

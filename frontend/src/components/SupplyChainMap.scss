@@ -79,4 +79,24 @@
     color: colours.$colour-text-secondary;
     margin: 0.15rem 0 0;
   }
+
+  // ── Edge (cooling chain) popup ─────────────────────────────────────────────
+  &__edge-popup {
+    min-width: 260px;
+
+    &-route {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin: 0 0 0.5rem;
+      color: colours.$colour-text-primary;
+    }
+
+    &-arrow {
+      font-size: 1rem;
+      color: colours.$colour-text-secondary;
+    }
+  }
 }
