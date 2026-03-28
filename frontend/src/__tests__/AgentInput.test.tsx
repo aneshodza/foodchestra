@@ -1,8 +1,18 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { useEffect } from 'react';
 import { vi } from 'vitest';
 import AgentInput from '../components/shared/AgentInput';
 import { AgentContextProvider, useAgentContext } from '../context/AgentContext';
+
+const mockSendMessage = vi.hoisted(() => vi.fn());
+
+vi.mock('@foodchestra/sdk', () => ({
+  client: {
+    chat: {
+      sendMessage: mockSendMessage,
+    },
+  },
+}));
 
 function ContextPreloader({ ctx }: { ctx: string }) {
   const { setContext } = useAgentContext();
@@ -20,7 +30,7 @@ function renderAgentInput(context = '') {
 }
 
 afterEach(() => {
-  vi.restoreAllMocks();
+  vi.resetAllMocks();
 });
 
 describe('AgentInput', () => {
@@ -30,73 +40,126 @@ describe('AgentInput', () => {
     expect(screen.getByRole('button')).toBeInTheDocument();
   });
 
-  it('textarea has the correct placeholder', () => {
+  it('has the correct placeholder', () => {
     renderAgentInput();
     expect(screen.getByPlaceholderText('Ask about this product…')).toBeInTheDocument();
   });
 
-  it('logs message and context when send button is clicked', () => {
-    const spy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+  it('does not call sendMessage when input is empty', async () => {
+    renderAgentInput();
+    fireEvent.click(screen.getByRole('button'));
+    expect(mockSendMessage).not.toHaveBeenCalled();
+  });
+
+  it('does not call sendMessage when input is only whitespace', async () => {
+    renderAgentInput();
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: '   ' } });
+    fireEvent.click(screen.getByRole('button'));
+    expect(mockSendMessage).not.toHaveBeenCalled();
+  });
+
+  it('calls sendMessage with trimmed message and context', async () => {
+    mockSendMessage.mockResolvedValueOnce({ response: 'ok', toolSteps: [] });
     renderAgentInput('Page: Scanner');
 
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'hello' } });
     fireEvent.click(screen.getByRole('button'));
 
-    expect(spy).toHaveBeenCalledWith({ message: 'hello', context: 'Page: Scanner' });
+    await waitFor(() => expect(mockSendMessage).toHaveBeenCalledWith('hello', 'Page: Scanner', undefined));
   });
 
-  it('logs message and context when Enter is pressed', () => {
-    const spy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
-    renderAgentInput('Page: Product');
+  it('calls sendMessage on Enter key', async () => {
+    mockSendMessage.mockResolvedValueOnce({ response: 'ok', toolSteps: [] });
+    renderAgentInput();
 
     const textarea = screen.getByRole('textbox');
     fireEvent.change(textarea, { target: { value: 'what is this?' } });
     fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: false });
 
-    expect(spy).toHaveBeenCalledWith({ message: 'what is this?', context: 'Page: Product' });
+    await waitFor(() => expect(mockSendMessage).toHaveBeenCalledWith('what is this?', undefined, undefined));
   });
 
-  it('does NOT send when Shift+Enter is pressed', () => {
-    const spy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+  it('does not send on Shift+Enter', () => {
     renderAgentInput();
 
     const textarea = screen.getByRole('textbox');
     fireEvent.change(textarea, { target: { value: 'line one' } });
     fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: true });
 
-    expect(spy).not.toHaveBeenCalled();
+    expect(mockSendMessage).not.toHaveBeenCalled();
   });
 
-  it('includes empty context when no provider context is set', () => {
-    const spy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+  it('clears the input after sending', async () => {
+    mockSendMessage.mockResolvedValueOnce({ response: 'ok', toolSteps: [] });
+    renderAgentInput();
+
+    const textarea = screen.getByRole('textbox');
+    fireEvent.change(textarea, { target: { value: 'hello' } });
+    fireEvent.click(screen.getByRole('button'));
+
+    await waitFor(() => expect(textarea).toHaveValue(''));
+  });
+
+  it('passes undefined context when none is set', async () => {
+    mockSendMessage.mockResolvedValueOnce({ response: 'ok', toolSteps: [] });
     renderAgentInput();
 
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'hi' } });
     fireEvent.click(screen.getByRole('button'));
 
-    expect(spy).toHaveBeenCalledWith({ message: 'hi', context: '' });
+    await waitFor(() => expect(mockSendMessage).toHaveBeenCalledWith('hi', undefined, undefined));
   });
 
-  it('logs the latest context after it changes', () => {
-    const spy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+  it('passes history of prior turns on the second message', async () => {
+    mockSendMessage
+      .mockResolvedValueOnce({ response: 'First reply', toolSteps: [] })
+      .mockResolvedValueOnce({ response: 'Second reply', toolSteps: [] });
 
-    const { rerender } = render(
-      <AgentContextProvider>
-        <ContextPreloader ctx="first" />
-        <AgentInput />
-      </AgentContextProvider>,
+    renderAgentInput();
+    const textarea = screen.getByRole('textbox');
+
+    // First message — no history
+    fireEvent.change(textarea, { target: { value: 'first question' } });
+    fireEvent.click(screen.getByRole('button'));
+    await waitFor(() => expect(mockSendMessage).toHaveBeenCalledTimes(1));
+
+    // Second message — history contains both sides of turn 1
+    fireEvent.change(textarea, { target: { value: 'second question' } });
+    fireEvent.click(screen.getByRole('button'));
+    await waitFor(() => expect(mockSendMessage).toHaveBeenCalledTimes(2));
+
+    expect(mockSendMessage).toHaveBeenNthCalledWith(
+      2,
+      'second question',
+      undefined,
+      ['USER: first question', 'THE AGENT: First reply'],
     );
+  });
 
-    rerender(
-      <AgentContextProvider>
-        <ContextPreloader ctx="second" />
-        <AgentInput />
-      </AgentContextProvider>,
-    );
+  it('logs sending and response to console', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    mockSendMessage.mockResolvedValueOnce({ response: 'done', toolSteps: ['get_alive'] });
+    renderAgentInput('ctx');
 
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'msg' } });
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'ping' } });
     fireEvent.click(screen.getByRole('button'));
 
-    expect(spy).toHaveBeenCalledWith({ message: 'msg', context: 'second' });
+    await waitFor(() => expect(logSpy).toHaveBeenCalledWith('[AgentInput] Response:', 'done'));
+    expect(logSpy).toHaveBeenCalledWith('[AgentInput] Sending:', expect.objectContaining({ message: 'ping' }));
+    expect(logSpy).toHaveBeenCalledWith('[AgentInput] Tools used:', ['get_alive']);
+  });
+
+  it('logs error to console when sendMessage rejects', async () => {
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockSendMessage.mockRejectedValueOnce(new Error('network fail'));
+    renderAgentInput();
+
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'oops' } });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button'));
+    });
+
+    await waitFor(() => expect(errSpy).toHaveBeenCalledWith('[AgentInput] Error:', expect.any(Error)));
   });
 });
