@@ -25,6 +25,13 @@
     border-top-color: vars.$colour-primary;
     border-radius: 50%;
     animation: pv-spin 0.8s linear infinite;
+
+    &--sm {
+      width: 1rem;
+      height: 1rem;
+      border-width: 2px;
+      margin-left: auto;
+    }
   }
 
   &__loading-text {
@@ -86,52 +93,6 @@
   }
 
   &__warning {
-  &__enrichment {
-    &-header {
-      background-color: colours.$colour-background;
-      border-bottom: 1px solid colours.$colour-border;
-    }
-
-    &-safety {
-      border-radius: 0;
-      border-left: none;
-      border-right: none;
-      border-top: none;
-    }
-
-    &-section-title {
-      font-size: 0.7rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: colours.$colour-text-secondary;
-      margin-bottom: 0.5rem;
-    }
-  }
-
-  &__allergen-badge {
-    background-color: colours.$colour-warning;
-    color: colours.$colour-text-primary;
-    font-weight: 500;
-  }
-
-  &__recall-thumb {
-    width: 72px;
-    height: 72px;
-    object-fit: contain;
-    flex-shrink: 0;
-    border-radius: 4px;
-    background-color: colours.$colour-background;
-  }
-
-  &__recall-description {
-    display: -webkit-box;
-    -webkit-line-clamp: 4;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .nutriscore {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -166,6 +127,13 @@
       grid-template-columns: 1fr 1fr;
       align-items: start;
     }
+  }
+
+  // Right column wrapper (AI enrichment + map stacked vertically)
+  &__right-col {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
   }
 
   // ── Product intel card ──────────────────────────────────────────────────────
@@ -259,26 +227,15 @@
     line-height: 1;
   }
 
-  &__nutriscore--a {
-    background: vars.$colour-nutriscore-a;
-  }
-
-  &__nutriscore--b {
-    background: vars.$colour-nutriscore-b;
-  }
+  &__nutriscore--a { background: vars.$colour-nutriscore-a; }
+  &__nutriscore--b { background: vars.$colour-nutriscore-b; }
 
   &__nutriscore--c {
     background: vars.$colour-nutriscore-c;
     color: vars.$colour-text-primary;
   }
-
-  &__nutriscore--d {
-    background: vars.$colour-nutriscore-d;
-  }
-
-  &__nutriscore--e {
-    background: vars.$colour-nutriscore-e;
-  }
+  &__nutriscore--d { background: vars.$colour-nutriscore-d; }
+  &__nutriscore--e { background: vars.$colour-nutriscore-e; }
 
   &__barcode-tag {
     display: inline-flex;
@@ -417,15 +374,15 @@
       color: vars.$colour-text-secondary;
     }
 
+    &:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
     &:focus {
       outline: none;
       border-color: vars.$colour-primary-light;
       box-shadow: 0 0 0 3px rgb(26 86 163 / 12%);
-    }
-
-    &:disabled {
-      opacity: 0.7;
-      cursor: not-allowed;
     }
   }
 
@@ -455,6 +412,190 @@
     .material-icons {
       font-size: 1.125rem;
     }
+  }
+
+  // ── AI Enrichment card ──────────────────────────────────────────────────────
+  &__enrichment {
+    &.glass-block {
+      overflow: hidden;
+    }
+  }
+
+  &__enrichment-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid rgb(0 0 0 / 6%);
+    font-size: vars.$font-size-sm;
+    font-weight: vars.$font-weight-semibold;
+    color: vars.$colour-text-primary;
+
+    .material-icons {
+      color: vars.$colour-primary;
+      font-size: 1.125rem;
+    }
+  }
+
+  &__enrichment-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 2rem 1.5rem;
+    color: vars.$colour-text-secondary;
+    font-size: vars.$font-size-sm;
+    text-align: center;
+
+    .material-icons {
+      font-size: 1.5rem;
+      opacity: 0.5;
+    }
+  }
+
+  &__enrichment-safety {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.875rem 1.5rem;
+
+    .material-icons {
+      font-size: 1.25rem;
+      flex-shrink: 0;
+      margin-top: 0.125rem;
+    }
+
+    &--safe {
+      background: vars.$colour-success-bg;
+      color: vars.$colour-success;
+      border-bottom: 1px solid rgb(26 122 79 / 15%);
+    }
+
+    &--caution {
+      background: vars.$colour-warning-bg;
+      color: vars.$colour-warning;
+      border-bottom: 1px solid rgb(217 119 6 / 15%);
+    }
+
+    &--danger {
+      background: vars.$colour-danger-bg;
+      color: vars.$colour-danger;
+      border-bottom: 1px solid rgb(220 38 38 / 15%);
+    }
+  }
+
+  &__enrichment-reason {
+    margin: 0.25rem 0 0;
+    font-size: vars.$font-size-sm;
+    opacity: 0.9;
+  }
+
+  &__enrichment-body {
+    padding: 1rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  &__enrichment-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  &__enrichment-section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: vars.$font-size-xs;
+    font-weight: vars.$font-weight-semibold;
+    color: vars.$colour-text-secondary;
+    text-transform: uppercase;
+    letter-spacing: vars.$letter-spacing-wider;
+    margin: 0;
+
+    .material-icons {
+      font-size: 0.875rem;
+    }
+  }
+
+  &__enrichment-notes {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+
+    @include bp.respond-up(md) {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  &__enrichment-note {
+    margin: 0;
+    font-size: vars.$font-size-sm;
+    color: vars.$colour-text-secondary;
+  }
+
+  // Recall cards
+  &__recall-card {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: vars.$colour-danger-bg;
+    border: 1px solid rgb(220 38 38 / 15%);
+    border-radius: vars.$glass-radius-sm;
+  }
+
+  &__recall-thumb {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+    flex-shrink: 0;
+    border-radius: 6px;
+    background: vars.$colour-surface;
+  }
+
+  &__recall-title {
+    margin: 0 0 0.25rem;
+    font-size: vars.$font-size-sm;
+    font-weight: vars.$font-weight-semibold;
+    color: vars.$colour-danger;
+  }
+
+  &__recall-meta {
+    margin: 0 0 0.25rem;
+    font-size: vars.$font-size-xs;
+    color: vars.$colour-text-secondary;
+  }
+
+  &__recall-description {
+    margin: 0;
+    font-size: vars.$font-size-xs;
+    color: vars.$colour-text-secondary;
+    display: -webkit-box;
+    // stylelint-disable-next-line property-no-vendor-prefix
+    -webkit-line-clamp: 4;
+    // stylelint-disable-next-line property-no-vendor-prefix
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  // Allergen badges
+  &__allergen-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+  }
+
+  &__allergen-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.625rem;
+    background: vars.$colour-warning-bg;
+    border: 1px solid rgb(217 119 6 / 20%);
+    border-radius: 100px;
+    font-size: vars.$font-size-xs;
+    font-weight: vars.$font-weight-medium;
+    color: vars.$colour-warning;
   }
 
   // ── Supply chain map card ───────────────────────────────────────────────────
@@ -497,6 +638,12 @@
     @include bp.respond-up(lg) {
       min-height: 500px;
     }
+  }
+
+  // ── Ecological footprint ────────────────────────────────────────────────────
+  &__footprint {
+    max-width: 1200px;
+    margin: 1.5rem auto 0;
   }
 }
 

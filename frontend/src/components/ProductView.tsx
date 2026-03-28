@@ -11,9 +11,9 @@ import EcologicalFootprint from './EcologicalFootprint';
 import './ProductView.scss';
 
 const SAFETY_CONFIG = {
-  safe: { alertClass: 'alert-success', icon: 'check_circle', label: 'No Safety Concerns' },
-  caution: { alertClass: 'alert-warning', icon: 'warning_amber', label: 'Caution' },
-  danger: { alertClass: 'alert-danger', icon: 'dangerous', label: 'Safety Alert' },
+  safe: { modifier: 'safe', icon: 'check_circle', label: 'No Safety Concerns' },
+  caution: { modifier: 'caution', icon: 'warning_amber', label: 'Caution' },
+  danger: { modifier: 'danger', icon: 'dangerous', label: 'Safety Alert' },
 } as const;
 
 const ProductView = () => {
@@ -132,7 +132,7 @@ const ProductView = () => {
       )}
 
       <div className="product-view__layout">
-        {/* Product intel */}
+        {/* Product intel — left column */}
         <GlassBlock className="product-view__intel">
           <div className="product-view__image-section">
             {product.imageUrl ? (
@@ -239,22 +239,133 @@ const ProductView = () => {
           </div>
         </GlassBlock>
 
-        {/* Supply chain map — shown when activeBatch is set */}
-        {activeBatch && barcode && (
-          <GlassBlock className="product-view__map-block">
-            <div className="product-view__map-header">
-              <h3 className="product-view__map-title">
-                <span className="material-icons">map</span>
-                Supply Chain Journey
-              </h3>
-              <p className="product-view__map-subtitle">Batch {activeBatch}</p>
+        {/* Right column: AI Analysis + optional map */}
+        <div className="product-view__right-col">
+          {/* AI Enrichment panel */}
+          <GlassBlock className="product-view__enrichment">
+            <div className="product-view__enrichment-header">
+              <span className="material-icons">auto_awesome</span>
+              <span>AI Analysis</span>
+              {enrichmentLoading && (
+                <div className="product-view__spinner product-view__spinner--sm" role="status">
+                  <span className="sr-only">Analysing…</span>
+                </div>
+              )}
             </div>
-            <div className="product-view__map">
-              <SupplyChainMap barcode={barcode} batchNumber={activeBatch} />
-            </div>
+
+            {enrichmentLoading && !enrichment && (
+              <div className="product-view__enrichment-empty">
+                Analysing product safety, recalls, and sustainability…
+              </div>
+            )}
+
+            {!enrichmentLoading && !enrichment && (
+              <div className="product-view__enrichment-empty">
+                <span className="material-icons">cloud_off</span>
+                AI analysis unavailable right now.
+              </div>
+            )}
+
+            {enrichment && safetyConfig && (
+              <>
+                <div className={`product-view__enrichment-safety product-view__enrichment-safety--${safetyConfig.modifier}`}>
+                  <span className="material-icons">{safetyConfig.icon}</span>
+                  <div>
+                    <strong>{safetyConfig.label}</strong>
+                    {enrichment.safetyReason && (
+                      <p className="product-view__enrichment-reason">{enrichment.safetyReason}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="product-view__enrichment-body">
+                  {enrichment.matchedRecalls.length > 0 && (
+                    <div className="product-view__enrichment-section">
+                      <h4 className="product-view__enrichment-section-title">
+                        <span className="material-icons">campaign</span>
+                        Government Recalls ({enrichment.matchedRecalls.length})
+                      </h4>
+                      {enrichment.matchedRecalls.map((recall) => (
+                        <div key={recall.id} className="product-view__recall-card">
+                          {recall.imageUrlDe && (
+                            <img src={recall.imageUrlDe} alt="Recalled product" className="product-view__recall-thumb" />
+                          )}
+                          <div>
+                            <p className="product-view__recall-title">{recall.headerDe}</p>
+                            {recall.metaDe && <p className="product-view__recall-meta">{recall.metaDe}</p>}
+                            {recall.authorityNameDe && <p className="product-view__recall-meta">{recall.authorityNameDe}</p>}
+                            {recall.descriptionDe && <p className="product-view__recall-description">{recall.descriptionDe}</p>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {enrichment.allergenWarnings.length > 0 && (
+                    <div className="product-view__enrichment-section">
+                      <h4 className="product-view__enrichment-section-title">
+                        <span className="material-icons">no_food</span>
+                        Allergens
+                      </h4>
+                      <div className="product-view__allergen-list">
+                        {enrichment.allergenWarnings.map((allergen) => (
+                          <span key={allergen} className="product-view__allergen-badge">{allergen}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {(enrichment.qualityNote || enrichment.sustainabilityNote) && (
+                    <div className="product-view__enrichment-notes">
+                      {enrichment.qualityNote && (
+                        <div>
+                          <h4 className="product-view__enrichment-section-title">
+                            <span className="material-icons">star_rate</span>
+                            Quality
+                          </h4>
+                          <p className="product-view__enrichment-note">{enrichment.qualityNote}</p>
+                        </div>
+                      )}
+                      {enrichment.sustainabilityNote && (
+                        <div>
+                          <h4 className="product-view__enrichment-section-title">
+                            <span className="material-icons">eco</span>
+                            Sustainability
+                          </h4>
+                          <p className="product-view__enrichment-note">{enrichment.sustainabilityNote}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </GlassBlock>
-        )}
+
+          {/* Supply chain map — shown when activeBatch is set */}
+          {activeBatch && barcode && (
+            <GlassBlock className="product-view__map-block">
+              <div className="product-view__map-header">
+                <h3 className="product-view__map-title">
+                  <span className="material-icons">map</span>
+                  Supply Chain Journey
+                </h3>
+                <p className="product-view__map-subtitle">Batch {activeBatch}</p>
+              </div>
+              <div className="product-view__map">
+                <SupplyChainMap barcode={barcode} batchNumber={activeBatch} />
+              </div>
+            </GlassBlock>
+          )}
+        </div>
       </div>
+
+      {/* Ecological footprint — full width, only when batch is known */}
+      {urlBatchNumber && barcode && (
+        <div className="product-view__footprint">
+          <EcologicalFootprint barcode={barcode} batchNumber={urlBatchNumber} />
+        </div>
+      )}
 
       {showReportModal && barcode && (
         <ReportModal

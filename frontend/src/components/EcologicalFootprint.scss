@@ -1,57 +1,131 @@
-@use '../styles/variables/colours' as colours;
+@use '../styles/variables' as vars;
 
 .ecological-footprint {
   &__header {
-    background-color: colours.$colour-background;
-    border-bottom: 1px solid colours.$colour-border;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    font-size: 1rem;
+    color: vars.$colour-text-primary;
+    margin-bottom: 1.25rem;
+
+    .material-icons {
+      color: vars.$colour-success;
+      font-size: 1.25rem;
+    }
   }
 
   &__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-left: auto;
     font-size: 0.75rem;
     font-weight: 600;
-    padding: 0.35em 0.65em;
+    padding: 0.3em 0.75em;
+    border-radius: 999px;
+
+    .material-icons {
+      font-size: 0.9rem;
+      color: inherit;
+    }
 
     &--local {
-      background-color: colours.$colour-success;
+      background-color: vars.$colour-success;
       color: white;
     }
 
     &--regional {
-      background-color: colours.$colour-nutriscore-b;
+      background-color: vars.$colour-nutriscore-b;
       color: white;
     }
 
     &--national {
-      background-color: colours.$colour-warning;
-      color: colours.$colour-text-primary;
+      background-color: vars.$colour-warning;
+      color: vars.$colour-text-primary;
     }
 
     &--international {
-      background-color: colours.$colour-danger;
+      background-color: vars.$colour-danger;
       color: white;
     }
+  }
+
+  &__spinner {
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid vars.$colour-border;
+    border-top-color: vars.$colour-success;
+    border-radius: 50%;
+    animation: footprint-spin 0.75s linear infinite;
+    margin-left: auto;
+  }
+
+  &__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1.5rem 0;
+    color: vars.$colour-text-secondary;
+    font-size: 0.875rem;
+    text-align: center;
+
+    .material-icons {
+      font-size: 2rem;
+      opacity: 0.4;
+    }
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  &__stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    text-align: center;
+  }
+
+  &__stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
   }
 
   &__stat-value {
     font-size: 1.75rem;
     font-weight: 700;
-    color: colours.$colour-text-primary;
+    color: vars.$colour-text-primary;
     line-height: 1.1;
+    margin: 0;
 
     &--co2 {
-      color: colours.$colour-success;
+      color: vars.$colour-success;
     }
   }
 
   &__stat-label {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.04em;
+    color: vars.$colour-text-secondary;
+    margin: 0;
   }
 
   &__disclaimer {
     font-size: 0.7rem;
-    border-top: 1px solid colours.$colour-border;
+    color: vars.$colour-text-secondary;
+    border-top: 1px solid vars.$colour-border;
     padding-top: 0.75rem;
+    margin: 0;
   }
+}
+
+@keyframes footprint-spin {
+  to { transform: rotate(360deg); }
 }
