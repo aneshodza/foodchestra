@@ -8,6 +8,7 @@ import recallsRouter from './routers/recalls.router';
 import scansRouter from './routers/scans.router';
 import partiesRouter from './routers/parties.router';
 import batchesRouter from './routers/batches.router';
+import reportsRouter from './routers/reports.router';
 
 const app = express();
 
@@ -40,5 +41,6 @@ app.use('/recalls', recallsRouter);
 app.use('/scans', scansRouter);
 app.use('/parties', partiesRouter);
 app.use('/batches', batchesRouter);
+app.use('/products', reportsRouter);
 
 export default app;

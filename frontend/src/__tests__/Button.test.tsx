@@ -22,6 +22,11 @@ describe('Button', () => {
     expect(screen.getByRole('button')).toHaveClass('btn-danger');
   });
 
+  it('applies the correct class for outline-danger variant', () => {
+    render(<Button label="Test" onClick={() => {}} variant="outline-danger" />);
+    expect(screen.getByRole('button')).toHaveClass('btn-outline-danger');
+  });
+
   it('calls onClick when clicked', () => {
     const onClick = vi.fn();
     render(<Button label="Test" onClick={onClick} />);

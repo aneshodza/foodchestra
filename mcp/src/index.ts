@@ -7,6 +7,7 @@ import { registerRecallTools } from './tools/recalls.js';
 import { registerScanTools } from './tools/scans.js';
 import { registerPartyTools } from './tools/parties.js';
 import { registerBatchTools } from './tools/batches.js';
+import { registerReportTools } from './tools/reports.js';
 
 const apiUrl = process.env['FOODCHESTRA_API_URL'] ?? 'http://localhost:3000';
 const client = createClient({ baseUrl: apiUrl });
@@ -22,6 +23,7 @@ registerRecallTools(server, client);
 registerScanTools(server, client);
 registerPartyTools(server, client);
 registerBatchTools(server, client);
+registerReportTools(server, client);
 
 const transport = new StdioServerTransport();
 await server.connect(transport);

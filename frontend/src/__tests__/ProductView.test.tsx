@@ -8,6 +8,9 @@ vi.mock('@foodchestra/sdk', () => ({
     products: {
       getByBarcode: vi.fn(),
     },
+    reports: {
+      getReports: vi.fn(),
+    },
   },
 }));
 
@@ -22,6 +25,13 @@ const mockProduct = {
   ingredientsText: 'Cocoa, Sugar',
   ingredients: [],
   imageUrl: 'http://example.com/image.jpg',
+};
+
+const emptyReports = {
+  count: 0,
+  recentCount24h: 0,
+  hasWarning: false,
+  reports: [],
 };
 
 function renderProductView(barcode = '12345678', searchParams = '') {
@@ -47,6 +57,7 @@ describe('ProductView', () => {
   it('renders loading state initially', async () => {
     const { client } = await import('@foodchestra/sdk');
     (client.products.getByBarcode as ReturnType<typeof vi.fn>).mockReturnValue(new Promise(() => {}));
+    (client.reports.getReports as ReturnType<typeof vi.fn>).mockReturnValue(new Promise(() => {}));
 
     renderProductView();
 
@@ -59,6 +70,7 @@ describe('ProductView', () => {
       found: true,
       product: mockProduct,
     });
+    (client.reports.getReports as ReturnType<typeof vi.fn>).mockResolvedValue(emptyReports);
 
     renderProductView();
 
@@ -76,6 +88,7 @@ describe('ProductView', () => {
       found: false,
       product: null,
     });
+    (client.reports.getReports as ReturnType<typeof vi.fn>).mockResolvedValue(emptyReports);
 
     renderProductView('00000000');
 
@@ -87,6 +100,7 @@ describe('ProductView', () => {
   it('renders error message on API failure', async () => {
     const { client } = await import('@foodchestra/sdk');
     (client.products.getByBarcode as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('API error'));
+    (client.reports.getReports as ReturnType<typeof vi.fn>).mockResolvedValue(emptyReports);
 
     renderProductView();
 
@@ -101,6 +115,7 @@ describe('ProductView', () => {
       found: true,
       product: mockProduct,
     });
+    (client.reports.getReports as ReturnType<typeof vi.fn>).mockResolvedValue(emptyReports);
 
     renderProductView();
 
@@ -117,6 +132,7 @@ describe('ProductView', () => {
       found: true,
       product: { ...mockProduct, imageUrl: null },
     });
+    (client.reports.getReports as ReturnType<typeof vi.fn>).mockResolvedValue(emptyReports);
 
     renderProductView();
 
@@ -132,6 +148,7 @@ describe('ProductView', () => {
       found: true,
       product: { ...mockProduct, quantity: null },
     });
+    (client.reports.getReports as ReturnType<typeof vi.fn>).mockResolvedValue(emptyReports);
 
     renderProductView();
 
@@ -146,6 +163,7 @@ describe('ProductView', () => {
       found: true,
       product: { ...mockProduct, stores: null },
     });
+    (client.reports.getReports as ReturnType<typeof vi.fn>).mockResolvedValue(emptyReports);
 
     renderProductView();
 
@@ -160,6 +178,7 @@ describe('ProductView', () => {
       found: true,
       product: { ...mockProduct, ingredientsText: null },
     });
+    (client.reports.getReports as ReturnType<typeof vi.fn>).mockResolvedValue(emptyReports);
 
     renderProductView();
 
@@ -174,6 +193,7 @@ describe('ProductView', () => {
       found: true,
       product: { ...mockProduct, name: null },
     });
+    (client.reports.getReports as ReturnType<typeof vi.fn>).mockResolvedValue(emptyReports);
 
     renderProductView();
 
@@ -188,6 +208,7 @@ describe('ProductView', () => {
       found: true,
       product: { ...mockProduct, brands: null },
     });
+    (client.reports.getReports as ReturnType<typeof vi.fn>).mockResolvedValue(emptyReports);
 
     renderProductView();
 
@@ -202,6 +223,7 @@ describe('ProductView', () => {
       found: true,
       product: { ...mockProduct, nutriscoreGrade: null },
     });
+    (client.reports.getReports as ReturnType<typeof vi.fn>).mockResolvedValue(emptyReports);
 
     renderProductView();
 
@@ -216,6 +238,7 @@ describe('ProductView', () => {
       found: true,
       product: mockProduct,
     });
+    (client.reports.getReports as ReturnType<typeof vi.fn>).mockResolvedValue(emptyReports);
 
     renderProductView();
 
@@ -304,11 +327,86 @@ describe('ProductView', () => {
       found: false,
       product: null,
     });
+    (client.reports.getReports as ReturnType<typeof vi.fn>).mockResolvedValue(emptyReports);
 
     renderProductView();
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Back to Scanner' })).toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: 'Back to Scanner' }));
     expect(screen.getByText('Scanner Page')).toBeInTheDocument();
+  });
+
+  it('shows warning alert when hasWarning is true', async () => {
+    const { client } = await import('@foodchestra/sdk');
+    (client.products.getByBarcode as ReturnType<typeof vi.fn>).mockResolvedValue({
+      found: true,
+      product: mockProduct,
+    });
+    (client.reports.getReports as ReturnType<typeof vi.fn>).mockResolvedValue({
+      count: 6,
+      recentCount24h: 5,
+      hasWarning: true,
+      reports: [],
+    });
+
+    renderProductView();
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Multiple users have reported issues with this product recently.'),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('shows social proof text when count > 0', async () => {
+    const { client } = await import('@foodchestra/sdk');
+    (client.products.getByBarcode as ReturnType<typeof vi.fn>).mockResolvedValue({
+      found: true,
+      product: mockProduct,
+    });
+    (client.reports.getReports as ReturnType<typeof vi.fn>).mockResolvedValue({
+      count: 3,
+      recentCount24h: 1,
+      hasWarning: false,
+      reports: [],
+    });
+
+    renderProductView();
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('3 users reported issues in the last 30 days'),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('does not show social proof when count is 0', async () => {
+    const { client } = await import('@foodchestra/sdk');
+    (client.products.getByBarcode as ReturnType<typeof vi.fn>).mockResolvedValue({
+      found: true,
+      product: mockProduct,
+    });
+    (client.reports.getReports as ReturnType<typeof vi.fn>).mockResolvedValue(emptyReports);
+
+    renderProductView();
+
+    await waitFor(() => expect(screen.getByText('Test Chocolate')).toBeInTheDocument());
+    expect(screen.queryByText(/reported issues/)).not.toBeInTheDocument();
+  });
+
+  it('still shows product when reports fetch fails', async () => {
+    const { client } = await import('@foodchestra/sdk');
+    (client.products.getByBarcode as ReturnType<typeof vi.fn>).mockResolvedValue({
+      found: true,
+      product: mockProduct,
+    });
+    (client.reports.getReports as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('reports error'));
+
+    renderProductView();
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Chocolate')).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/reported issues/)).not.toBeInTheDocument();
   });
 });

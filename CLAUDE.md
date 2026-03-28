@@ -418,3 +418,16 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 - If a product is not found or is older than 24 hours, it is fetched from OpenFoodFacts and updated in the database via `upsertProduct()`.
 - Migration `003_create_products.sql` added the `products` table with a numeric `id` (SERIAL), `barcode` (UNIQUE), and JSONB for `ingredients`.
 - `products.repository.ts` handles DB interaction, returning the internal `id` on upserts.
+
+## User Reports (feature/user-reports)
+- `GET /products/:barcode/reports` — returns `{ count, recentCount24h, hasWarning, reports[] }`. Warning triggers when `recentCount24h > 4`. Only reports from last 30 days are counted/returned. Auto-resolves (no warning) when 30-day window is empty.
+- `POST /products/:barcode/reports` — anonymous report; requires `category` (enum), optional `description` (max 500 chars in UI). Product must already be cached.
+- Migration `006_create_reports.sql` — `report_category` enum (`expired`, `damaged_packaging`, `quality_issue`, `foreign_object`, `mislabeled`, `other`), `reports` table with UUID PK + `product_id` FK + composite index `(product_id, created_at DESC)`.
+- `reports.repository.ts` — `createReport()`, `getReportSummaryByProductId()` (single conditional-aggregation query), `getReportsByProductId()`.
+- `reports.router.ts` — `Router({ mergeParams: true })` mounted under `/products` in `app.ts` — critical for param inheritance.
+- SDK: `sdk/src/types/reports.ts` + `sdk/src/routes/reports.ts`; `client.reports.getReports(barcode)` + `client.reports.createReport(barcode, input)`.
+- Frontend: `ReportIssuePage.tsx` at `/products/:barcode/report` — category dropdown + description textarea + confirmation on success.
+- `ProductView.tsx` fetches product + reports in parallel via `Promise.allSettled` (reports failure degrades gracefully). Shows red alert if `hasWarning`, social proof text if `count > 0`, navigates to ReportIssuePage on "Report Issue" click.
+- `Button.tsx` `variant` type extended with `'outline-danger'` (fixes pre-existing type gap).
+- Test counts: backend 70 tests (9 suites), frontend 73 tests (8 files).
+- **Stretch goals (not yet implemented):** image upload on reports; agent-based spam detection (cross-checks reports, flags fakes before showing warning).
