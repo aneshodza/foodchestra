@@ -1,16 +1,50 @@
 import { useRef, useState } from 'react';
+import { client } from '@foodchestra/sdk';
 import { useAgentContext } from '../../context/AgentContext';
 import './AgentInput.scss';
 
 const MAX_ROWS = 4;
 
+type ConversationMessage = { role: 'user' | 'assistant'; content: string };
+
 function AgentInput() {
   const [value, setValue] = useState('');
+  const [conversation, setConversation] = useState<ConversationMessage[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { context } = useAgentContext();
 
-  const handleSend = () => {
-    console.log({ message: value, context });
+  const handleSend = async () => {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+
+    const history = conversation.map((m) =>
+      m.role === 'user' ? `USER: ${m.content}` : `THE AGENT: ${m.content}`,
+    );
+
+    console.log('[AgentInput] Sending:', { message: trimmed, context, history });
+
+    setConversation((prev) => [...prev, { role: 'user', content: trimmed }]);
+    setValue('');
+
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.overflowY = 'hidden';
+    }
+
+    try {
+      const result = await client.chat.sendMessage(
+        trimmed,
+        context || undefined,
+        history.length ? history : undefined,
+      );
+      if (result.toolSteps.length > 0) {
+        console.log('[AgentInput] Tools used:', result.toolSteps);
+      }
+      console.log('[AgentInput] Response:', result.response);
+      setConversation((prev) => [...prev, { role: 'assistant', content: result.response }]);
+    } catch (err) {
+      console.error('[AgentInput] Error:', err);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
