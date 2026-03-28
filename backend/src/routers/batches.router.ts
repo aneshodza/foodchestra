@@ -1,4 +1,5 @@
-import { Router, Request, Response } from 'express';
+import type { Request, Response } from 'express';
+import { Router } from 'express';
 import { SupplyChainRepository } from '../repositories/supply-chain.repository';
 
 const router = Router();
@@ -13,11 +14,11 @@ const router = Router();
  *         id:
  *           type: string
  *           format: uuid
- *         product_barcode:
+ *         productBarcode:
  *           type: string
- *         batch_number:
+ *         batchNumber:
  *           type: string
- *         created_at:
+ *         createdAt:
  *           type: string
  *           format: date-time
  *     SupplyChain:
@@ -26,10 +27,10 @@ const router = Router();
  *         id:
  *           type: string
  *           format: uuid
- *         batch_id:
+ *         batchId:
  *           type: string
  *           format: uuid
- *         created_at:
+ *         createdAt:
  *           type: string
  *           format: date-time
  *         nodes:
@@ -42,10 +43,10 @@ const router = Router();
  *                 format: uuid
  *               label:
  *                 type: string
- *               arrived_at:
+ *               arrivedAt:
  *                 type: string
  *                 format: date-time
- *               departed_at:
+ *               departedAt:
  *                 type: string
  *                 format: date-time
  *               location:
@@ -69,10 +70,10 @@ const router = Router();
  *           items:
  *             type: object
  *             properties:
- *               from_node_id:
+ *               fromNodeId:
  *                 type: string
  *                 format: uuid
- *               to_node_id:
+ *               toNodeId:
  *                 type: string
  *                 format: uuid
  */

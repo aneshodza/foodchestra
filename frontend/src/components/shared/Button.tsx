@@ -2,7 +2,7 @@ import './Button.scss';
 
 interface ButtonProps {
   label: string;
-  onClick: () => void;
+  onClick?: () => void;
   variant?: 'primary' | 'secondary' | 'danger' | 'outline-danger';
   disabled?: boolean;
 }

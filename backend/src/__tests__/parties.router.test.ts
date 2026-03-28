@@ -28,17 +28,17 @@ const sampleParty: Party = {
   id: 'a1000000-0000-0000-0000-000000000001',
   name: 'Bio-Hof Müller',
   type: 'farmer',
-  created_at: '2026-01-01T00:00:00Z',
+  createdAt: '2026-01-01T00:00:00Z',
 };
 
 const sampleLocation: PartyLocation = {
   id: 'b1000000-0000-0000-0000-000000000001',
-  party_id: sampleParty.id,
+  partyId: sampleParty.id,
   label: 'Hof Erlinsbach',
   latitude: 47.4167,
   longitude: 7.9333,
   address: 'Hofstrasse 12, 5018 Erlinsbach',
-  created_at: '2026-01-01T00:00:00Z',
+  createdAt: '2026-01-01T00:00:00Z',
 };
 
 describe('GET /parties', () => {

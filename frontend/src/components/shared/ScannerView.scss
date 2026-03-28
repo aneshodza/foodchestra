@@ -1,4 +1,4 @@
-@use "../../styles/variables/colours" as colors;
+@use "../../styles/variables/colours" as colours;
 @use "../../styles/variables/breakpoints" as bp;
 
 .scanner-container {
@@ -8,7 +8,7 @@
   margin: 0 auto;
   border-radius: 8px;
   overflow: hidden;
-  background-color: colors.$colour-background;
+  background-color: colours.$colour-background;
   aspect-ratio: 4 / 3;
 
   #reader {
@@ -25,7 +25,7 @@
     justify-content: center;
 
     .scanner-roi {
-      border: 2px solid colors.$colour-primary;
+      border: 2px solid colours.$colour-primary;
       border-radius: 8px;
       box-shadow: 0 0 0 9999px rgb(0 0 0 / 50%);
       position: relative;
@@ -37,7 +37,7 @@
         left: 0;
         right: 0;
         height: 2px;
-        background-color: colors.$colour-primary;
+        background-color: colours.$colour-primary;
         opacity: 0.5;
         animation: scan-line 2s infinite ease-in-out;
       }
@@ -47,7 +47,7 @@
   .scanner-cooldown {
     position: absolute;
     inset: 0;
-    background-color: rgba(colors.$colour-success, 0.2);
+    background-color: rgba(colours.$colour-success, 0.2);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -55,7 +55,7 @@
     
     .material-icons {
       font-size: 4rem;
-      color: colors.$colour-success;
+      color: colours.$colour-success;
     }
   }
 }

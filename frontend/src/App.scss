@@ -4,8 +4,7 @@
 @import 'leaflet/dist/leaflet.css';
 
 // ── Project variables ─────────────────────────────────────────────────────────
-@import 'styles/variables/colours';
-@import 'styles/variables/breakpoints';
+@use 'styles/variables/colours' as colours;
 
 // ── Global base styles ────────────────────────────────────────────────────────
 *,
@@ -15,6 +14,6 @@
 }
 
 body {
-  background-color: $colour-background;
-  color: $colour-text-primary;
+  background-color: colours.$colour-background;
+  color: colours.$colour-text-primary;
 }

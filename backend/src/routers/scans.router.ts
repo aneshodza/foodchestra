@@ -1,4 +1,5 @@
-import { Router, Request, Response } from 'express';
+import type { Request, Response } from 'express';
+import { Router } from 'express';
 import { ScansRepository } from '../repositories/scans.repository';
 
 const router = Router();
@@ -13,12 +14,12 @@ const router = Router();
  *         id:
  *           type: string
  *           format: uuid
- *         scan_result:
+ *         scanResult:
  *           type: string
- *         scan_type:
+ *         scanType:
  *           type: string
  *           enum: [qr, barcode, ocr, manual]
- *         scanned_at:
+ *         scannedAt:
  *           type: string
  *           format: date-time
  *         metadata:

@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+BOLD='\033[1m'
+NC='\033[0m'
+
+printf "${BOLD}==> Running lint-staged...${NC}\n"
+
+if npx lint-staged; then
+  printf "${GREEN}${BOLD}✔ Pre-commit checks passed${NC}\n"
+else
+  printf "${RED}${BOLD}✘ Pre-commit checks failed — fix the issues above and re-stage${NC}\n"
+  exit 1
+fi

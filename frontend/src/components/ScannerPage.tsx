@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { client } from '@foodchestra/sdk';
 import { looksLikeBarcode } from '../utils/barcode';
 import { parseGs1QrCode } from '../utils/gs1';
-import { ScanMode } from '../types';
+import type { ScanMode } from '../types';
 import HomeIcon from './shared/HomeIcon';
 import Button from './shared/Button';
 import ScannerView from './shared/ScannerView';

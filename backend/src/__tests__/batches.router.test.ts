@@ -34,34 +34,34 @@ afterEach(() => {
 
 const sampleBatch: Batch = {
   id: 'c1000000-0000-0000-0000-000000000001',
-  product_barcode: '7610807001024',
-  batch_number: 'LOT-2026-JW-042',
-  created_at: '2026-01-01T00:00:00Z',
+  productBarcode: '7610807001024',
+  batchNumber: 'LOT-2026-JW-042',
+  createdAt: '2026-01-01T00:00:00Z',
 };
 
 const sampleSupplyChain: SupplyChain = {
   id: 'd1000000-0000-0000-0000-000000000001',
-  batch_id: sampleBatch.id,
-  created_at: '2026-01-01T00:00:00Z',
+  batchId: sampleBatch.id,
+  createdAt: '2026-01-01T00:00:00Z',
   nodes: [
     {
       id: 'e1000000-0000-0000-0000-000000000001',
       label: 'Wheat harvest',
-      arrived_at: '2026-01-10T05:00:00Z',
-      departed_at: '2026-01-10T13:00:00Z',
+      arrivedAt: '2026-01-10T05:00:00Z',
+      departedAt: '2026-01-10T13:00:00Z',
       location: {
         id: 'b1000000-0000-0000-0000-000000000001',
-        party_id: 'a1000000-0000-0000-0000-000000000001',
+        partyId: 'a1000000-0000-0000-0000-000000000001',
         label: 'Hof Erlinsbach',
         latitude: 47.4167,
         longitude: 7.9333,
         address: 'Hofstrasse 12, 5018 Erlinsbach',
-        created_at: '2026-01-01T00:00:00Z',
+        createdAt: '2026-01-01T00:00:00Z',
         party: {
           id: 'a1000000-0000-0000-0000-000000000001',
           name: 'Bio-Hof Müller',
           type: 'farmer',
-          created_at: '2026-01-01T00:00:00Z',
+          createdAt: '2026-01-01T00:00:00Z',
         },
       },
     },
@@ -216,7 +216,7 @@ describe('GET /batches/:id/supply-chain', () => {
     const res = await request(app).get(`/batches/${sampleBatch.id}/supply-chain`);
 
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ id: sampleSupplyChain.id, batch_id: sampleBatch.id });
+    expect(res.body).toMatchObject({ id: sampleSupplyChain.id, batchId: sampleBatch.id });
     expect(res.body.nodes).toHaveLength(1);
     expect(mockFindSupplyChainByBatch).toHaveBeenCalledWith(sampleBatch.id);
   });

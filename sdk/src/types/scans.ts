@@ -2,9 +2,9 @@ export type ScanType = 'qr' | 'barcode' | 'ocr' | 'manual';
 
 export interface Scan {
   id: string;
-  scan_result: string;
-  scan_type: ScanType;
-  scanned_at: string;
+  scanResult: string;
+  scanType: ScanType;
+  scannedAt: string;
   metadata: Record<string, unknown>;
 }
 

@@ -45,51 +45,51 @@ vi.mock('@foodchestra/sdk', () => ({
 
 const sampleBatch = {
   id: 'batch-1',
-  product_barcode: '7610800749004',
-  batch_number: 'LOT-2026-JW-042',
-  created_at: '2026-01-01T00:00:00Z',
+  productBarcode: '7610800749004',
+  batchNumber: 'LOT-2026-JW-042',
+  createdAt: '2026-01-01T00:00:00Z',
 };
 
 const nodeA = {
   id: 'node-a',
   label: 'Wheat harvest',
-  arrived_at: '2026-01-10T05:00:00Z',
-  departed_at: '2026-01-10T13:00:00Z',
+  arrivedAt: '2026-01-10T05:00:00Z',
+  departedAt: '2026-01-10T13:00:00Z',
   location: {
     id: 'loc-a',
-    party_id: 'party-a',
+    partyId: 'party-a',
     label: 'Hof Erlinsbach',
     latitude: 47.4167,
     longitude: 7.9333,
     address: 'Hofstrasse 12, 5018 Erlinsbach',
-    created_at: '2026-01-01T00:00:00Z',
-    party: { id: 'party-a', name: 'Bio-Hof Müller', type: 'farmer', created_at: '2026-01-01T00:00:00Z' },
+    createdAt: '2026-01-01T00:00:00Z',
+    party: { id: 'party-a', name: 'Bio-Hof Müller', type: 'farmer', createdAt: '2026-01-01T00:00:00Z' },
   },
 };
 
 const nodeB = {
   id: 'node-b',
   label: null,
-  arrived_at: '2026-01-11T08:00:00Z',
-  departed_at: null,
+  arrivedAt: '2026-01-11T08:00:00Z',
+  departedAt: null,
   location: {
     id: 'loc-b',
-    party_id: 'party-b',
+    partyId: 'party-b',
     label: 'Jowa Volketswil',
     latitude: 47.3833,
     longitude: 8.7,
     address: null,
-    created_at: '2026-01-01T00:00:00Z',
-    party: { id: 'party-b', name: 'Jowa AG', type: 'processor', created_at: '2026-01-01T00:00:00Z' },
+    createdAt: '2026-01-01T00:00:00Z',
+    party: { id: 'party-b', name: 'Jowa AG', type: 'processor', createdAt: '2026-01-01T00:00:00Z' },
   },
 };
 
 const sampleSupplyChain = {
   id: 'sc-1',
-  batch_id: 'batch-1',
-  created_at: '2026-01-01T00:00:00Z',
+  batchId: 'batch-1',
+  createdAt: '2026-01-01T00:00:00Z',
   nodes: [nodeA, nodeB],
-  edges: [{ from_node_id: 'node-a', to_node_id: 'node-b' }],
+  edges: [{ fromNodeId: 'node-a', toNodeId: 'node-b' }],
 };
 
 async function setupMocks(batches = [sampleBatch], supplyChain = sampleSupplyChain) {

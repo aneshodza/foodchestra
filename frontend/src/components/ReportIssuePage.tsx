@@ -5,6 +5,8 @@ import type { ReportCategory } from '@foodchestra/sdk';
 import Button from './shared/Button';
 import './ReportIssuePage.scss';
 
+const MAX_DESCRIPTION_LENGTH = 500;
+
 const CATEGORY_LABELS: Record<ReportCategory, string> = {
   damaged_packaging: 'Damaged Packaging',
   quality_issue: 'Quality Issue',
@@ -51,7 +53,7 @@ const ReportIssuePage = () => {
             <span>Thanks for your feedback! Your report helps other users stay safe.</span>
           </div>
           <Link to={`/products/${barcode}`}>
-            <Button label="Back to Product" variant="primary" onClick={() => undefined} />
+            <Button label="Back to Product" variant="primary" />
           </Link>
         </div>
       </div>
@@ -111,11 +113,11 @@ const ReportIssuePage = () => {
               className="form-control report-issue-page__description"
               placeholder="Briefly describe the issue..."
               value={description}
-              maxLength={500}
+              maxLength={MAX_DESCRIPTION_LENGTH}
               onChange={(e) => setDescription(e.target.value)}
             />
             <div className="report-issue-page__char-hint mt-1 text-end">
-              {description.length}/500
+              {description.length}/{MAX_DESCRIPTION_LENGTH}
             </div>
           </div>
 
@@ -127,7 +129,7 @@ const ReportIssuePage = () => {
               disabled={submitting}
             />
             <Link to={`/products/${barcode}`}>
-              <Button label="Cancel" variant="secondary" onClick={() => undefined} />
+              <Button label="Cancel" variant="secondary" />
             </Link>
           </div>
         </div>

@@ -24,7 +24,12 @@ export const SupplyChainRepository = {
     const res = await pool.query(
       'SELECT id, name, type, created_at FROM parties ORDER BY name',
     );
-    return res.rows;
+    return res.rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      type: r.type,
+      createdAt: r.created_at,
+    }));
   },
 
   async findPartyById(id: string): Promise<Party | null> {
@@ -32,7 +37,9 @@ export const SupplyChainRepository = {
       'SELECT id, name, type, created_at FROM parties WHERE id = $1',
       [id],
     );
-    return res.rows[0] || null;
+    const r = res.rows[0];
+    if (!r) return null;
+    return { id: r.id, name: r.name, type: r.type, createdAt: r.created_at };
   },
 
   async findLocationsByParty(partyId: string): Promise<PartyLocation[]> {
@@ -43,7 +50,15 @@ export const SupplyChainRepository = {
        ORDER BY label`,
       [partyId],
     );
-    return res.rows;
+    return res.rows.map((r) => ({
+      id: r.id,
+      partyId: r.party_id,
+      label: r.label,
+      latitude: r.latitude,
+      longitude: r.longitude,
+      address: r.address,
+      createdAt: r.created_at,
+    }));
   },
 
   async findBatchById(id: string): Promise<Batch | null> {
@@ -51,22 +66,31 @@ export const SupplyChainRepository = {
       'SELECT id, product_barcode, batch_number, created_at FROM batches WHERE id = $1',
       [id],
     );
-    return res.rows[0] || null;
+    const r = res.rows[0];
+    if (!r) return null;
+    return { id: r.id, productBarcode: r.product_barcode, batchNumber: r.batch_number, createdAt: r.created_at };
   },
 
   async findByBatchNumber(batchNumber: string, barcode?: string): Promise<Batch[]> {
+    const mapBatch = (r: Record<string, unknown>) => ({
+      id: r['id'] as string,
+      productBarcode: r['product_barcode'] as string,
+      batchNumber: r['batch_number'] as string,
+      createdAt: r['created_at'] as string,
+    });
+
     if (barcode) {
       const res = await pool.query(
         'SELECT id, product_barcode, batch_number, created_at FROM batches WHERE batch_number = $1 AND product_barcode = $2',
         [batchNumber, barcode],
       );
-      return res.rows;
+      return res.rows.map(mapBatch);
     }
     const res = await pool.query(
       'SELECT id, product_barcode, batch_number, created_at FROM batches WHERE batch_number = $1',
       [batchNumber],
     );
-    return res.rows;
+    return res.rows.map(mapBatch);
   },
 
   async findBatchByProductAndNumber(
@@ -77,7 +101,9 @@ export const SupplyChainRepository = {
       'SELECT id, product_barcode, batch_number, created_at FROM batches WHERE product_barcode = $1 AND batch_number = $2',
       [productBarcode, batchNumber],
     );
-    return res.rows[0] || null;
+    const r = res.rows[0];
+    if (!r) return null;
+    return { id: r.id, productBarcode: r.product_barcode, batchNumber: r.batch_number, createdAt: r.created_at };
   },
 
   async createBatch(input: CreateBatchInput): Promise<Batch> {
@@ -87,7 +113,8 @@ export const SupplyChainRepository = {
        RETURNING id, product_barcode, batch_number, created_at`,
       [input.productBarcode, input.batchNumber],
     );
-    return res.rows[0];
+    const r = res.rows[0];
+    return { id: r.id, productBarcode: r.product_barcode, batchNumber: r.batch_number, createdAt: r.created_at };
   },
 
   async findSupplyChainByBatch(batchId: string): Promise<SupplyChain | null> {
@@ -124,26 +151,26 @@ export const SupplyChainRepository = {
     const nodes: SupplyChainNode[] = nodesRes.rows.map((r) => ({
       id: r.id,
       label: r.label,
-      arrived_at: r.arrived_at,
-      departed_at: r.departed_at,
+      arrivedAt: r.arrived_at,
+      departedAt: r.departed_at,
       location: {
         id: r.loc_id,
-        party_id: r.party_id,
+        partyId: r.party_id,
         label: r.loc_label,
         latitude: r.latitude,
         longitude: r.longitude,
         address: r.address,
-        created_at: r.loc_created_at,
+        createdAt: r.loc_created_at,
         party: {
           id: r.party_id,
           name: r.party_name,
           type: r.party_type,
-          created_at: r.party_created_at,
+          createdAt: r.party_created_at,
         },
       },
     }));
 
-    const edgesRes = await pool.query<SupplyChainEdge>(
+    const edgesRes = await pool.query(
       `SELECT e.from_node_id, e.to_node_id
        FROM supply_chain_edges e
        JOIN supply_chain_nodes n ON n.id = e.from_node_id
@@ -151,12 +178,17 @@ export const SupplyChainRepository = {
       [chain.id],
     );
 
+    const edges: SupplyChainEdge[] = edgesRes.rows.map((r) => ({
+      fromNodeId: r.from_node_id,
+      toNodeId: r.to_node_id,
+    }));
+
     return {
       id: chain.id,
-      batch_id: chain.batch_id,
-      created_at: chain.created_at,
+      batchId: chain.batch_id,
+      createdAt: chain.created_at,
       nodes,
-      edges: edgesRes.rows,
+      edges,
     };
   },
 };

@@ -8,6 +8,9 @@ import type { SupplyChain, SupplyChainNode } from '@foodchestra/sdk';
 import type { PartyType } from '@foodchestra/sdk';
 import './SupplyChainMap.scss';
 
+// Matches $colour-danger in _colours.scss
+const POLYLINE_COLOUR = '#dc3545';
+
 const PARTY_TYPE_ICONS: Record<PartyType, string> = {
   farmer: 'agriculture',
   processor: 'factory',
@@ -34,7 +37,7 @@ function ArrowPolyline({ positions }: { positions: LatLngTuple[] }) {
   const map = useMap();
 
   useEffect(() => {
-    const line = L.polyline(positions, { color: '#dc3545', weight: 3, opacity: 0.85 }).arrowheads({
+    const line = L.polyline(positions, { color: POLYLINE_COLOUR, weight: 3, opacity: 0.85 }).arrowheads({
       size: '12px',
       frequency: 'endonly',
       fill: true,
@@ -137,12 +140,12 @@ export default function SupplyChainMap({ batchNumber, barcode }: SupplyChainMapP
   }
 
   const nodeById = new Map(supplyChain.nodes.map((n) => [n.id, n]));
-  const fromNodeIds = new Set(supplyChain.edges.map((e) => e.from_node_id));
+  const fromNodeIds = new Set(supplyChain.edges.map((e) => e.fromNodeId));
 
   const polylines = supplyChain.edges
     .map((edge) => {
-      const from = nodeById.get(edge.from_node_id);
-      const to = nodeById.get(edge.to_node_id);
+      const from = nodeById.get(edge.fromNodeId);
+      const to = nodeById.get(edge.toNodeId);
       if (!from || !to) return null;
       return [
         [from.location.latitude, from.location.longitude] as LatLngTuple,
@@ -196,10 +199,10 @@ export default function SupplyChainMap({ batchNumber, barcode }: SupplyChainMapP
                 </p>
               )}
               <p className="supply-chain-map__popup-detail">
-                Arrived: {formatTimestamp(node.arrived_at)}
+                Arrived: {formatTimestamp(node.arrivedAt)}
               </p>
               <p className="supply-chain-map__popup-detail">
-                Departed: {formatTimestamp(node.departed_at)}
+                Departed: {formatTimestamp(node.departedAt)}
               </p>
             </Popup>
           </Marker>
