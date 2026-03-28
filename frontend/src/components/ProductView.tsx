@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { client } from '@foodchestra/sdk';
 import type { Product } from '@foodchestra/sdk';
 import Button from './shared/Button';
@@ -7,6 +7,10 @@ import './ProductView.scss';
 
 const ProductView = () => {
   const { barcode } = useParams<{ barcode: string }>();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const urlBatchNumber = searchParams.get('batchNumber');
+  const [batchInput, setBatchInput] = useState(urlBatchNumber || '');
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -124,8 +128,36 @@ const ProductView = () => {
               </div>
 
               <div className="mt-4 pt-3 border-top d-flex gap-2">
-                <Button label="Report Issue" variant="outline-danger" onClick={() => alert('Complaints not implemented yet')} />
-                <Button label="Trace Journey" variant="primary" onClick={() => alert('Supply chain journey not implemented yet')} />
+                <Button label="Report Issue" variant="danger" onClick={() => alert('Complaints not implemented yet')} />
+              </div>
+
+              <div className="mt-3">
+                <label htmlFor="batch-number-input" className="form-label small text-muted fw-semibold text-uppercase">
+                  Trace Journey
+                </label>
+                <div className="input-group">
+                  <input
+                    id="batch-number-input"
+                    type="text"
+                    className="form-control"
+                    placeholder="Batch number"
+                    value={batchInput}
+                    onChange={(e) => setBatchInput(e.target.value)}
+                    disabled={!!urlBatchNumber}
+                  />
+                  <button
+                    className="btn btn-primary"
+                    type="button"
+                    disabled={!batchInput.trim()}
+                    onClick={() =>
+                      navigate(
+                        `/products/${encodeURIComponent(barcode!)}/maps/${encodeURIComponent(batchInput.trim())}`,
+                      )
+                    }
+                  >
+                    <span className="material-icons align-middle">route</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>

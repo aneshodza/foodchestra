@@ -20,6 +20,7 @@
     "bootstrap": "^5.3.3",
     "html5-qrcode": "^2.3.8",
     "leaflet": "^1.9.4",
+    "leaflet-arrowheads": "^1.4.0",
     "material-icons": "^1.13.12",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

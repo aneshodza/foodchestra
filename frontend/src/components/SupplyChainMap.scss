@@ -49,6 +49,13 @@
       line-height: 1;
     }
 
+    &--dim {
+      opacity: 0.75;
+      transition: opacity 0.15s ease;
+
+      &:hover { opacity: 1; }
+    }
+
     &--farmer     { background-color: #4caf50; }
     &--processor  { background-color: #1976d2; }
     &--distributor { background-color: #f57c00; }

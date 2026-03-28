@@ -7,7 +7,6 @@ import { ScanMode } from '../types';
 import HomeIcon from './shared/HomeIcon';
 import Button from './shared/Button';
 import ScannerView from './shared/ScannerView';
-import SupplyChainMap from './SupplyChainMap';
 
 const ScannerPage = () => {
   const [scanning, setScanning] = useState(false);
@@ -50,9 +49,6 @@ const ScannerPage = () => {
   return (
     <main className="container py-5">
       <div className="row justify-content-center">
-        <div className="col-12 col-md-8 mb-4">
-          <SupplyChainMap barcode="7610807001024" batchNumber="LOT-2026-JW-042" />
-        </div>
         <div className="col-12 col-md-6">
           <div className="card shadow-sm">
             <div className="card-body">

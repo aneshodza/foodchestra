@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import 'leaflet-arrowheads';
 import type { LatLngBoundsExpression, LatLngTuple } from 'leaflet';
 import { client } from '@foodchestra/sdk';
 import type { SupplyChain, SupplyChainNode } from '@foodchestra/sdk';
@@ -15,17 +16,37 @@ const PARTY_TYPE_ICONS: Record<PartyType, string> = {
   retailer: 'storefront',
 };
 
-function createMarkerIcon(partyType: PartyType): L.DivIcon {
+function createMarkerIcon(partyType: PartyType, isFinal: boolean, isActive: boolean): L.DivIcon {
   const iconName = PARTY_TYPE_ICONS[partyType] || 'place';
+  const dimClass = isFinal || isActive ? '' : ' supply-chain-map__marker--dim';
   return L.divIcon({
     className: '',
-    html: `<div class="supply-chain-map__marker supply-chain-map__marker--${partyType}">
+    html: `<div class="supply-chain-map__marker supply-chain-map__marker--${partyType}${dimClass}">
              <span class="material-icons">${iconName}</span>
            </div>`,
     iconSize: [36, 44],
     iconAnchor: [18, 44],
     popupAnchor: [0, -46],
   });
+}
+
+function ArrowPolyline({ positions }: { positions: LatLngTuple[] }) {
+  const map = useMap();
+
+  useEffect(() => {
+    const line = L.polyline(positions, { color: '#dc3545', weight: 3, opacity: 0.85 }).arrowheads({
+      size: '12px',
+      frequency: 'endonly',
+      fill: true,
+      yawn: 40,
+    });
+    line.addTo(map);
+    return () => {
+      line.remove();
+    };
+  }, [map, positions]);
+
+  return null;
 }
 
 interface SupplyChainMapProps {
@@ -62,6 +83,7 @@ export default function SupplyChainMap({ batchNumber, barcode }: SupplyChainMapP
   const [supplyChain, setSupplyChain] = useState<SupplyChain | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [openPopupId, setOpenPopupId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -115,6 +137,7 @@ export default function SupplyChainMap({ batchNumber, barcode }: SupplyChainMapP
   }
 
   const nodeById = new Map(supplyChain.nodes.map((n) => [n.id, n]));
+  const fromNodeIds = new Set(supplyChain.edges.map((e) => e.from_node_id));
 
   const polylines = supplyChain.edges
     .map((edge) => {
@@ -150,7 +173,11 @@ export default function SupplyChainMap({ batchNumber, barcode }: SupplyChainMapP
           <Marker
             key={node.id}
             position={[node.location.latitude, node.location.longitude]}
-            icon={createMarkerIcon(node.location.party.type)}
+            icon={createMarkerIcon(node.location.party.type, !fromNodeIds.has(node.id), openPopupId === node.id)}
+            eventHandlers={{
+              popupopen: () => setOpenPopupId(node.id),
+              popupclose: () => setOpenPopupId(null),
+            }}
           >
             <Popup>
               <strong>{node.location.party.name}</strong>
@@ -179,7 +206,7 @@ export default function SupplyChainMap({ batchNumber, barcode }: SupplyChainMapP
         ))}
 
         {polylines.map((positions, i) => (
-          <Polyline key={i} positions={positions} color="#2d7a4f" weight={3} opacity={0.8} />
+          <ArrowPolyline key={i} positions={positions} />
         ))}
       </MapContainer>
     </div>
