@@ -1,14 +1,14 @@
-@use "../../styles/variables/colours" as colours;
-@use "../../styles/variables/breakpoints" as bp;
+@use '../../styles/variables' as vars;
+@use '../../styles/variables/breakpoints' as bp;
 
 .scanner-container {
   position: relative;
   width: 100%;
   max-width: 500px;
   margin: 0 auto;
-  border-radius: 8px;
+  border-radius: vars.$glass-radius-sm;
   overflow: hidden;
-  background-color: colours.$colour-background;
+  background-color: vars.$colour-background;
   aspect-ratio: 4 / 3;
 
   #reader {
@@ -25,19 +25,19 @@
     justify-content: center;
 
     .scanner-roi {
-      border: 2px solid colours.$colour-primary;
+      border: 2px solid vars.$colour-primary;
       border-radius: 8px;
       box-shadow: 0 0 0 9999px rgb(0 0 0 / 50%);
       position: relative;
 
       &::after {
-        content: "";
+        content: '';
         position: absolute;
         top: 50%;
         left: 0;
         right: 0;
         height: 2px;
-        background-color: colours.$colour-primary;
+        background-color: vars.$colour-primary;
         opacity: 0.5;
         animation: scan-line 2s infinite ease-in-out;
       }
@@ -47,15 +47,15 @@
   .scanner-cooldown {
     position: absolute;
     inset: 0;
-    background-color: rgba(colours.$colour-success, 0.2);
+    background-color: rgba(vars.$colour-success, 0.2);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 10;
-    
+
     .material-icons {
       font-size: 4rem;
-      color: colours.$colour-success;
+      color: vars.$colour-success;
     }
   }
 }

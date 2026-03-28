@@ -13,6 +13,10 @@ vi.mock('@foodchestra/sdk', () => ({
   },
 }));
 
+vi.mock('../components/SupplyChainMap', () => ({
+  default: () => <div>Mock Map</div>,
+}));
+
 vi.mock('../components/shared/ScannerView', () => ({
   default: ({ onScanSuccess }: { onScanSuccess: (text: string) => void }) => (
     <>

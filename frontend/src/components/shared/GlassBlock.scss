@@ -1,0 +1,14 @@
+@use '../../styles/variables' as vars;
+
+.glass-block {
+  background: vars.$glass-bg;
+  backdrop-filter: blur(vars.$glass-blur);
+  // stylelint-disable-next-line property-no-vendor-prefix
+  -webkit-backdrop-filter: blur(vars.$glass-blur);
+  border: vars.$glass-border;
+  border-radius: vars.$glass-radius;
+  box-shadow: vars.$glass-shadow;
+  transition:
+    box-shadow 0.3s ease,
+    background 0.3s ease;
+}

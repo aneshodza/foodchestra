@@ -24,17 +24,17 @@ describe('BackendStatus', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('shows "Backend up" after a successful health check', async () => {
+  it('shows "API online" after a successful health check', async () => {
     mockGetAlive.mockResolvedValue({ status: 'ok' });
     render(<BackendStatus />);
-    await waitFor(() => expect(screen.getByText('Backend up')).toBeInTheDocument());
-    expect(screen.getByRole('status')).toHaveClass('alert-success');
+    await waitFor(() => expect(screen.getByText('API online')).toBeInTheDocument());
+    expect(screen.getByRole('status')).toHaveClass('backend-status--up');
   });
 
-  it('shows "Backend down" after a failed health check', async () => {
+  it('shows "API offline" after a failed health check', async () => {
     mockGetAlive.mockRejectedValue(new Error('connection refused'));
     render(<BackendStatus />);
-    await waitFor(() => expect(screen.getByText('Backend down')).toBeInTheDocument());
-    expect(screen.getByRole('status')).toHaveClass('alert-danger');
+    await waitFor(() => expect(screen.getByText('API offline')).toBeInTheDocument());
+    expect(screen.getByRole('status')).toHaveClass('backend-status--down');
   });
 });

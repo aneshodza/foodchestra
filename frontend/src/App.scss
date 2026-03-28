@@ -1,32 +1,109 @@
-// ── Project variables ─────────────────────────────────────────────────────────
-@use 'styles/variables/colours' as colours;
+// ── Design tokens ─────────────────────────────────────────────────────────────
+@use 'styles/variables' as vars;
+
+// ── Google Fonts: Montserrat ──────────────────────────────────────────────────
+@import 'https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap';
 
 // ── Third-party imports ───────────────────────────────────────────────────────
 @import 'material-icons/iconfont/material-icons.css';
-@import 'bootstrap/scss/bootstrap';
 @import 'leaflet/dist/leaflet.css';
 
-// ── Global base styles ────────────────────────────────────────────────────────
+// ── Custom CSS Reset ──────────────────────────────────────────────────────────
 *,
 *::before,
 *::after {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
+html {
+  text-size-adjust: 100%;
+}
+
+img,
+video {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+input,
+button,
+textarea,
+select {
+  font: inherit;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+// ── Global base ───────────────────────────────────────────────────────────────
 body {
-  background-color: colours.$colour-background;
-  color: colours.$colour-text-primary;
-  padding-bottom: 5rem;
+  font-family: vars.$font-family-base;
+  font-weight: vars.$font-weight-light;
+  line-height: vars.$line-height-base;
+  color: vars.$colour-text-primary;
+  background: linear-gradient(135deg, vars.$colour-background 0%, #f0f5ff 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
 }
 
-// ── Agent bar (sticky bottom) ─────────────────────────────────────────────────
-.agent-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: colours.$colour-surface;
-  border-top: 1px solid colours.$colour-border;
-  padding: 0.75rem 0;
-  z-index: 1000;
+a {
+  color: vars.$colour-primary;
+  text-decoration: none;
+
+  &:hover {
+    color: vars.$colour-primary-light;
+  }
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: vars.$font-weight-semibold;
+  line-height: vars.$line-height-tight;
+  color: vars.$colour-text-primary;
+}
+
+// ── Global utilities ──────────────────────────────────────────────────────────
+
+// Screen-reader only (replaces Bootstrap's visually-hidden)
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+// Page-level full-height centred layout
+.fc-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 1rem;
+}
+
+// Max-width container
+.fc-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.fc-container--narrow {
+  max-width: 600px;
 }

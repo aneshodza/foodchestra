@@ -1,19 +1,96 @@
-@use '../../styles/variables/colours' as colours;
+@use '../../styles/variables' as vars;
 @use '../../styles/variables/breakpoints' as bp;
 
 .fc-button {
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.5rem;
+  border: 2px solid transparent;
+  border-radius: vars.$glass-radius-sm;
+  font-family: vars.$font-family-base;
+  font-size: vars.$font-size-base;
+  font-weight: vars.$font-weight-semibold;
+  letter-spacing: vars.$letter-spacing-wide;
+  cursor: pointer;
   transition:
     background-color 0.2s ease,
-    box-shadow 0.2s ease;
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.1s ease,
+    opacity 0.2s ease;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 
   &:focus-visible {
-    outline: 3px solid colours.$colour-primary-light;
+    outline: 3px solid vars.$colour-primary-light;
     outline-offset: 2px;
   }
 
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  &--full {
+    width: 100%;
+  }
+
+  &__icon {
+    font-size: 1.125rem;
+    line-height: 1;
+  }
+
+  // Primary: filled ATEXIS blue
+  &--primary {
+    background: vars.$colour-primary;
+    color: #fff;
+    box-shadow: 0 2px 8px rgb(26 86 163 / 30%);
+
+    &:hover:not(:disabled) {
+      background: vars.$colour-primary-light;
+      box-shadow: 0 4px 16px rgb(26 86 163 / 40%);
+    }
+  }
+
+  // Outline: transparent with primary border
+  &--outline {
+    background: transparent;
+    color: vars.$colour-primary;
+    border-color: vars.$colour-primary;
+
+    &:hover:not(:disabled) {
+      background: rgb(26 86 163 / 6%);
+    }
+  }
+
+  // Ghost: text only
+  &--ghost {
+    background: transparent;
+    color: vars.$colour-text-secondary;
+
+    &:hover:not(:disabled) {
+      color: vars.$colour-text-primary;
+      background: rgb(0 0 0 / 4%);
+    }
+  }
+
+  // Danger: red fill
+  &--danger {
+    background: vars.$colour-danger;
+    color: #fff;
+    box-shadow: 0 2px 8px rgb(220 38 38 / 25%);
+
+    &:hover:not(:disabled) {
+      background: #c01c1c;
+      box-shadow: 0 4px 16px rgb(220 38 38 / 35%);
+    }
+  }
+
   @include bp.respond-up(md) {
-    padding: 0.5rem 1.5rem;
+    padding: 0.75rem 2rem;
   }
 }

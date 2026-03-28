@@ -1,35 +1,38 @@
-// ── Brand colours ─────────────────────────────────────────────────────────────
-$colour-primary: #2d7a4f;
-$colour-primary-dark: #1e5c3a;
-$colour-primary-light: #4caf80;
+// ── Brand colours (ATEXIS Blue & White) ──────────────────────────────────────
+$colour-primary: #1a56a3;
+$colour-primary-dark: #0d3b78;
+$colour-primary-light: #3a7bd5;
+$colour-accent: #5aa8e0;
 
-// ── Neutral colours ───────────────────────────────────────────────────────────
-$colour-background: #f8f9fa;
+// ── Neutral colours ────────────────────────────────────────────────────────────
+$colour-background: #ebf0fa;
 $colour-surface: #fff;
-$colour-text-primary: #212529;
-$colour-text-secondary: #6c757d;
-$colour-border: #dee2e6;
+$colour-text-primary: #1a2540;
+$colour-text-secondary: #5a6b8a;
+$colour-border: #d0dcee;
 
 // ── Semantic colours ──────────────────────────────────────────────────────────
-$colour-success: #198754;
-$colour-warning: #ffc107;
-$colour-danger: #dc3545;
-$colour-info: #0dcaf0;
+$colour-success: #1a7a4f;
+$colour-success-bg: rgb(26 122 79 / 10%);
+$colour-warning: #d97706;
+$colour-warning-bg: rgb(217 119 6 / 10%);
+$colour-danger: #dc2626;
+$colour-danger-bg: rgb(220 38 38 / 10%);
+$colour-info: #0b6fad;
 
-// ── Nutri-Score colours (official standard) ────────────────────────────────
+// ── Nutri-Score colours (official standard) ────────────────────────────────────
 $colour-nutriscore-a: #008142;
 $colour-nutriscore-b: #85bb2f;
 $colour-nutriscore-c: #fecb02;
 $colour-nutriscore-d: #ee8100;
 $colour-nutriscore-e: #e63e11;
 
-// ── Cooling chain status colours ──────────────────────────────────────────
-$colour-chain-ok: #0d6efd;      // blue — no temperature breach
-// breach reuses $colour-danger (#dc3545)
+// ── Cooling chain status colours ──────────────────────────────────────────────
+$colour-chain-ok: #0d6efd; // blue — no temperature breach; breach reuses $colour-danger
 
-// ── Supply chain party type colours ───────────────────────────────────────
-$colour-party-farmer: #4caf50;
-$colour-party-processor: #1976d2;
-$colour-party-distributor: #f57c00;
-$colour-party-warehouse: #7b1fa2;
-$colour-party-retailer: #c62828;
+// ── Supply chain party type colours ───────────────────────────────────────────
+$colour-party-farmer: #2e7d32;
+$colour-party-processor: #1565c0;
+$colour-party-distributor: #e65100;
+$colour-party-warehouse: #6a1b9a;
+$colour-party-retailer: #b71c1c;

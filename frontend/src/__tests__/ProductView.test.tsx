@@ -12,8 +12,15 @@ vi.mock('@foodchestra/sdk', () => ({
     },
     reports: {
       getReports: vi.fn(),
+      createReport: vi.fn(),
     },
   },
+}));
+
+vi.mock('../components/SupplyChainMap', () => ({
+  default: ({ batchNumber }: { batchNumber: string }) => (
+    <div data-testid="supply-chain-map">Mock Map for {batchNumber}</div>
+  ),
 }));
 
 const mockProduct = {
@@ -42,10 +49,6 @@ function renderProductView(barcode = '12345678', searchParams = '') {
       <Routes>
         <Route path="/" element={<div>Scanner Page</div>} />
         <Route path="/products/:barcode" element={<ProductView />} />
-        <Route
-          path="/products/:barcode/maps/:batchNumber"
-          element={<div data-testid="map-page">Map Page</div>}
-        />
       </Routes>
     </MemoryRouter>,
   );
@@ -152,7 +155,7 @@ describe('ProductView', () => {
     renderProductView();
 
     await waitFor(() => {
-      expect(screen.getByText('No image available')).toBeInTheDocument();
+      expect(screen.getByText('No image')).toBeInTheDocument();
       expect(screen.queryByRole('img')).not.toBeInTheDocument();
     });
   });
@@ -168,7 +171,7 @@ describe('ProductView', () => {
     renderProductView();
 
     await waitFor(() => {
-      expect(screen.getAllByText('N/A').some(el => el.closest('.col-sm-6'))).toBe(true);
+      expect(screen.getAllByText('N/A').length).toBeGreaterThan(0);
     });
   });
 
@@ -183,11 +186,11 @@ describe('ProductView', () => {
     renderProductView();
 
     await waitFor(() => {
-      expect(screen.getAllByText('N/A').some(el => el.closest('.col-sm-6'))).toBe(true);
+      expect(screen.getAllByText('N/A').length).toBeGreaterThan(0);
     });
   });
 
-  it('shows fallback text when ingredientsText is missing', async () => {
+  it('does not show the ingredients section when ingredientsText is missing', async () => {
     const { client } = await import('@foodchestra/sdk');
     (client.products.getByBarcode as ReturnType<typeof vi.fn>).mockResolvedValue({
       found: true,
@@ -197,9 +200,8 @@ describe('ProductView', () => {
 
     renderProductView();
 
-    await waitFor(() => {
-      expect(screen.getByText('No ingredient list available.')).toBeInTheDocument();
-    });
+    await waitFor(() => expect(screen.getByText('Test Chocolate')).toBeInTheDocument());
+    expect(screen.queryByText('Ingredients')).not.toBeInTheDocument();
   });
 
   it('shows "Unknown Product" when name is missing', async () => {
@@ -242,9 +244,8 @@ describe('ProductView', () => {
 
     renderProductView();
 
-    await waitFor(() => {
-      expect(screen.queryByText('Nutri-Score')).not.toBeInTheDocument();
-    });
+    await waitFor(() => expect(screen.getByText('Test Chocolate')).toBeInTheDocument());
+    expect(screen.queryByText('Nutri')).not.toBeInTheDocument();
   });
 
   it('navigates back to the scanner page when Back is clicked', async () => {
@@ -280,27 +281,27 @@ describe('ProductView', () => {
 
     it('renders the batch number input', async () => {
       await renderLoaded();
-      expect(screen.getByPlaceholderText('Batch number')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Enter batch number')).toBeInTheDocument();
     });
 
     it('input is empty by default when no batchNumber in URL', async () => {
       await renderLoaded();
-      expect(screen.getByPlaceholderText('Batch number')).toHaveValue('');
+      expect(screen.getByPlaceholderText('Enter batch number')).toHaveValue('');
     });
 
     it('input is pre-filled when batchNumber is in the URL', async () => {
       await renderLoaded('12345678', '?batchNumber=LOT-2026-JW-042');
-      expect(screen.getByPlaceholderText('Batch number')).toHaveValue('LOT-2026-JW-042');
+      expect(screen.getByPlaceholderText('Enter batch number')).toHaveValue('LOT-2026-JW-042');
     });
 
     it('input is disabled when batchNumber comes from the URL', async () => {
       await renderLoaded('12345678', '?batchNumber=LOT-2026-JW-042');
-      expect(screen.getByPlaceholderText('Batch number')).toBeDisabled();
+      expect(screen.getByPlaceholderText('Enter batch number')).toBeDisabled();
     });
 
     it('input is enabled when no batchNumber is in the URL', async () => {
       await renderLoaded();
-      expect(screen.getByPlaceholderText('Batch number')).not.toBeDisabled();
+      expect(screen.getByPlaceholderText('Enter batch number')).not.toBeDisabled();
     });
 
     it('journey button is disabled when input is empty', async () => {
@@ -315,24 +316,26 @@ describe('ProductView', () => {
 
     it('typing in the input enables the journey button', async () => {
       await renderLoaded();
-      const input = screen.getByPlaceholderText('Batch number');
+      const input = screen.getByPlaceholderText('Enter batch number');
       fireEvent.change(input, { target: { value: 'LOT-001' } });
       expect(screen.getByRole('button', { name: /route/i })).not.toBeDisabled();
     });
 
-    it('clicking the journey button navigates to the map page', async () => {
+    it('clicking the journey button shows the supply chain map inline', async () => {
       await renderLoaded('12345678', '?batchNumber=LOT-2026-JW-042');
       fireEvent.click(screen.getByRole('button', { name: /route/i }));
-      await waitFor(() => expect(screen.getByTestId('map-page')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByTestId('supply-chain-map')).toBeInTheDocument());
     });
 
-    it('navigates to the correct URL with the typed batch number', async () => {
+    it('shows the map with the correct batch number', async () => {
       await renderLoaded();
-      fireEvent.change(screen.getByPlaceholderText('Batch number'), {
+      fireEvent.change(screen.getByPlaceholderText('Enter batch number'), {
         target: { value: 'LOT-CUSTOM-001' },
       });
       fireEvent.click(screen.getByRole('button', { name: /route/i }));
-      await waitFor(() => expect(screen.getByTestId('map-page')).toBeInTheDocument());
+      await waitFor(() =>
+        expect(screen.getByText('Mock Map for LOT-CUSTOM-001')).toBeInTheDocument(),
+      );
     });
   });
 
