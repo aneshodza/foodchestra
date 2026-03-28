@@ -1,0 +1,48 @@
+@use '../../styles/variables/colours' as *;
+@use '../../styles/variables/breakpoints' as *;
+
+$agent-input-height: 2.75rem;
+$agent-input-radius: 0.5rem;
+
+.agent-input {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+
+  &__field {
+    flex: 1;
+    min-height: $agent-input-height;
+    resize: none;
+    overflow-y: hidden;
+    border-radius: $agent-input-radius;
+    border-color: $colour-border;
+
+    &:focus {
+      border-color: $colour-primary;
+      box-shadow: 0 0 0 0.2rem rgba($colour-primary, 0.25);
+    }
+  }
+
+  &__send {
+    flex-shrink: 0;
+    height: $agent-input-height;
+    width: $agent-input-height;
+    padding: 0;
+    border-radius: $agent-input-radius;
+    background-color: $colour-primary;
+    border-color: $colour-primary;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+      background-color: $colour-primary-dark;
+      border-color: $colour-primary-dark;
+    }
+
+    .material-icons {
+      font-size: 1.25rem;
+      line-height: 1;
+    }
+  }
+}
