@@ -25,3 +25,25 @@ export interface ProductLookupResponse {
 export interface CoolingStatusResponse {
   potentialBreach: boolean;
 }
+
+export type SafetyLevel = 'safe' | 'caution' | 'danger';
+
+export interface EnrichedRecall {
+  id: number;
+  headerDe: string | null;
+  headerFr: string | null;
+  headerIt: string | null;
+  descriptionDe: string | null;
+  metaDe: string | null;
+  imageUrlDe: string | null;
+  authorityNameDe: string | null;
+}
+
+export interface EnrichmentResult {
+  safetyLevel: SafetyLevel;
+  safetyReason: string;
+  matchedRecalls: EnrichedRecall[];
+  allergenWarnings: string[];
+  sustainabilityNote: string;
+  qualityNote: string;
+}

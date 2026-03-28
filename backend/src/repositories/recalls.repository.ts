@@ -57,6 +57,41 @@ export async function upsertRecalls(recalls: RecallRow[]): Promise<void> {
   );
 }
 
+const SEARCH_DEFAULT_LIMIT = 5;
+
+export async function searchRecallsByText(query: string, limit = SEARCH_DEFAULT_LIMIT): Promise<RecallRow[]> {
+  const trimmed = query.trim();
+  if (!trimmed) return [];
+
+  const result = await pool.query<RecallRow>(
+    `SELECT id, header_de, header_fr, header_it, description_de, description_fr,
+            description_it, meta_de, image_url_de, authority_code_de, authority_name_de
+     FROM recalls
+     WHERE to_tsvector('simple',
+       COALESCE(header_de,'') || ' ' || COALESCE(header_fr,'') || ' ' ||
+       COALESCE(header_it,'') || ' ' || COALESCE(description_de,'') || ' ' ||
+       COALESCE(description_fr,'') || ' ' || COALESCE(description_it,'')
+     ) @@ plainto_tsquery('simple', $1)
+     ORDER BY id DESC
+     LIMIT $2`,
+    [trimmed, limit],
+  );
+
+  return result.rows;
+}
+
+export async function getAllRecalls(limit = 150): Promise<RecallRow[]> {
+  const result = await pool.query<RecallRow>(
+    `SELECT id, header_de, header_fr, header_it, description_de, description_fr,
+            description_it, meta_de, image_url_de, authority_code_de, authority_name_de
+     FROM recalls
+     ORDER BY id DESC
+     LIMIT $1`,
+    [limit],
+  );
+  return result.rows;
+}
+
 export async function getRecalls(page: number, pageSize: number): Promise<{ rows: RecallRow[]; total: number }> {
   const offset = (page - 1) * pageSize;
 

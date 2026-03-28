@@ -2,9 +2,11 @@ import express from 'express';
 import request from 'supertest';
 import productsRouter from '../routers/products.router';
 import * as repo from '../repositories/products.repository';
+import * as recallsRepo from '../repositories/recalls.repository';
 import { CoolingChainRepository } from '../repositories/cooling-chain.repository';
 
 jest.mock('../repositories/products.repository');
+jest.mock('../repositories/recalls.repository');
 jest.mock('../repositories/cooling-chain.repository');
 
 const mockHasCoolingBreachForProduct = CoolingChainRepository.hasCoolingBreachForProduct as jest.MockedFunction<
@@ -13,6 +15,7 @@ const mockHasCoolingBreachForProduct = CoolingChainRepository.hasCoolingBreachFo
 
 const mockGetProductByBarcode = repo.getProductByBarcode as jest.MockedFunction<typeof repo.getProductByBarcode>;
 const mockUpsertProduct = repo.upsertProduct as jest.MockedFunction<typeof repo.upsertProduct>;
+const mockSearchRecallsByText = recallsRepo.searchRecallsByText as jest.MockedFunction<typeof recallsRepo.searchRecallsByText>;
 
 const app = express();
 app.use(express.json());
@@ -189,6 +192,116 @@ describe('GET /products/:barcode', () => {
       nutriscoreGrade: null,
       ingredients: [],
     });
+  });
+});
+
+describe('GET /products/:barcode/recalls', () => {
+  const cachedProduct: repo.ProductRow = {
+    id: 1,
+    barcode: '5901234123457',
+    name: 'Bretagne Oysters',
+    brands: 'Coop',
+    stores: null,
+    countries: null,
+    quantity: null,
+    nutriscore_grade: null,
+    ingredients_text: null,
+    ingredients: null,
+    image_url: null,
+    last_validated_at: new Date(),
+  };
+
+  const recallRow: recallsRepo.RecallRow = {
+    id: 6,
+    header_de: 'Coop ruft die Austern zurück',
+    header_fr: null,
+    header_it: null,
+    description_de: 'Aufgrund von Noroviren.',
+    description_fr: null,
+    description_it: null,
+    meta_de: 'Bern, 8.1.2020',
+    image_url_de: 'https://example.com/recall.jpg',
+    authority_code_de: 'BLV',
+    authority_name_de: 'Bundesamt für Lebensmittelsicherheit und Veterinärwesen',
+  };
+
+  it('returns 400 for an invalid barcode', async () => {
+    const res = await request(app).get('/products/not-a-barcode/recalls');
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'Invalid barcode format' });
+  });
+
+  it('returns empty recalls when product is not found anywhere', async () => {
+    mockGetProductByBarcode.mockResolvedValueOnce(null);
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ status: 0, product: null }),
+    } as unknown as Response);
+
+    const res = await request(app).get('/products/5901234123457/recalls');
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ recalls: [] });
+    expect(mockSearchRecallsByText).not.toHaveBeenCalled();
+  });
+
+  it('returns matched recalls when product is cached', async () => {
+    mockGetProductByBarcode.mockResolvedValueOnce(cachedProduct);
+    mockSearchRecallsByText.mockResolvedValueOnce([recallRow]);
+
+    const res = await request(app).get('/products/5901234123457/recalls');
+
+    expect(res.status).toBe(200);
+    expect(mockSearchRecallsByText).toHaveBeenCalledWith('Bretagne Oysters Coop');
+    expect(res.body).toMatchObject({
+      recalls: [
+        {
+          id: 6,
+          headerDe: 'Coop ruft die Austern zurück',
+          descriptionDe: 'Aufgrund von Noroviren.',
+          metaDe: 'Bern, 8.1.2020',
+          authorityCodeDe: 'BLV',
+          authorityNameDe: 'Bundesamt für Lebensmittelsicherheit und Veterinärwesen',
+        },
+      ],
+    });
+  });
+
+  it('returns empty recalls when search finds no matches', async () => {
+    mockGetProductByBarcode.mockResolvedValueOnce(cachedProduct);
+    mockSearchRecallsByText.mockResolvedValueOnce([]);
+
+    const res = await request(app).get('/products/5901234123457/recalls');
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ recalls: [] });
+  });
+
+  it('returns empty recalls when product has no name and no brands', async () => {
+    mockGetProductByBarcode.mockResolvedValueOnce({
+      ...cachedProduct,
+      name: null,
+      brands: null,
+      last_validated_at: new Date(), // fresh cache — won't hit OFF
+    });
+
+    const res = await request(app).get('/products/5901234123457/recalls');
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ recalls: [] });
+    expect(mockSearchRecallsByText).not.toHaveBeenCalled();
+  });
+
+  it('returns 500 when repository throws', async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    mockGetProductByBarcode.mockResolvedValueOnce(cachedProduct);
+    mockSearchRecallsByText.mockRejectedValueOnce(new Error('DB error'));
+
+    const res = await request(app).get('/products/5901234123457/recalls');
+
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: 'Failed to fetch recalls' });
+    consoleSpy.mockRestore();
   });
 });
 

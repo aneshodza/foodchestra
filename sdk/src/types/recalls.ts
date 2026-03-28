@@ -18,3 +18,7 @@ export interface RecallsResponse {
   page: number;
   pageSize: number;
 }
+
+export interface ProductRecallsResponse {
+  recalls: Recall[];
+}
