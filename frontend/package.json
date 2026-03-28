@@ -13,7 +13,8 @@
     "cypress:open": "cypress open",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
-    "lint:scss": "stylelint \"src/**/*.scss\""
+    "lint:scss": "stylelint \"src/**/*.scss\"",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@foodchestra/sdk": "*",

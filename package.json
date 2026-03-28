@@ -2,6 +2,7 @@
   "name": "foodchestra",
   "private": true,
   "scripts": {
+    "setup": "bash scripts/setup.sh",
     "dev": "npm run dev:backend & npm run dev:frontend & npm run dev:agent",
     "dev:backend": "npm run dev --workspace=backend",
     "dev:frontend": "npm run dev --workspace=frontend",
@@ -10,7 +11,10 @@
     "test": "npm run test -w backend -w frontend && npm run cypress:run --workspace=frontend",
     "lint": "npm run lint -w backend -w frontend -w sdk -w agent -w mcp",
     "lint:scss": "npm run lint:scss --workspace=frontend",
-    "lint:fix": "npm run lint:fix -w backend -w frontend -w sdk -w agent -w mcp"
+    "lint:fix": "npm run lint:fix -w backend -w frontend -w sdk -w agent -w mcp",
+    "check": "bash scripts/check.sh",
+    "db:reset": "bash scripts/db-reset.sh",
+    "prepare": "husky"
   },
   "workspaces": [
     "backend",
@@ -20,9 +24,19 @@
     "mcp"
   ],
   "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
     "wait-on": "^9.0.4"
   },
   "dependencies": {
     "esbuild": "^0.27.4"
+  },
+  "lint-staged": {
+    "backend/**/*.ts": "eslint --fix",
+    "frontend/**/*.{ts,tsx}": "eslint --fix",
+    "frontend/**/*.scss": "stylelint --fix",
+    "sdk/**/*.ts": "eslint --fix",
+    "agent/**/*.ts": "eslint --fix",
+    "mcp/**/*.ts": "eslint --fix"
   }
 }
