@@ -476,3 +476,14 @@ These notes exist so a fresh context can orient quickly without re-reading the w
 - FE: `SupplyChainMap` fetches cooling chain in parallel with supply chain; polylines now accept an `onClick` prop (handler stored in a `useRef` to avoid recreating polylines on state changes); clicking an edge opens a standalone `<Popup position={midpoint}>` (react-leaflet) with a recharts `LineChart`; gracefully degrades to "No temperature data available" if cooling fetch fails or edge has no readings
 - recharts (`recharts` npm package) added to frontend — used only for the `LineChart` in the edge popup
 - Tests: backend 91 → 105 (9 new in `cooling-chain.router.test.ts`, 13 new in `cooling-chain.repository.test.ts`); frontend 111 → 132 (7 new edge popup + cooling chain tests in `SupplyChainMap.test.tsx`, recharts mocked as `vi.mock('recharts', ...)`)
+
+## Anomaly Detection (feature/anomaly-detection)
+- Threshold: ±2°C from per-edge average (`COOLING_BREACH_THRESHOLD_CELSIUS = 2` exported from `cooling-chain.repository.ts`)
+- BE: `computeAnomaly(readings, threshold)` helper in repository; each `CoolingChainEdgeData` now includes `anomaly: { hasBreach, averageCelsius, upperBound, lowerBound, thresholdCelsius } | null` (null when no readings)
+- SDK: `CoolingChainAnomaly` interface added to `sdk/src/types/cooling-chain.ts`; `CoolingStatusResponse` added to `sdk/src/types/products.ts`
+- BE: `GET /products/:barcode/cooling-status` → `{ potentialBreach: boolean }` — CTE SQL query computes per-edge averages across all batches for a barcode and checks for any deviation > threshold; mounted in `products.router.ts`
+- FE map: supply chain polylines are **blue** (`$colour-chain-ok: #0d6efd`) when no breach, **red** (`$colour-danger`) when breach; each edge has an invisible hit-area polyline (weight 14, opacity 0) under the visible one for easier clicking
+- FE chart: `ReferenceArea` fills breach zones above/below bounds (explicit `y1`/`y2` with floored/ceiled domain to avoid bleeding into the safe zone); `ReferenceLine` dashed red at upper/lower bound; Y-axis uses `allowDecimals={false}` + `tickFormatter` for integer labels
+- FE product: `ProductView` fetches `getCoolingStatus` in parallel; shows `alert-warning` with thermostat icon when `potentialBreach: true`
+- MCP: `get_product_cooling_status` tool added to `mcp/src/tools/products.ts`
+- Tests: backend 105 → 113 (4 new cooling-status endpoint tests in `products.router.test.ts`, 4 new anomaly computation tests in `cooling-chain.repository.test.ts`); frontend 132 → 136 (3 new cooling breach/no-breach/failure tests in `ProductView.test.tsx`, updated polyline colour + recharts mocks)

@@ -18,4 +18,14 @@ export function registerProductTools(server: McpServer, client: Client) {
       return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
     },
   );
+
+  server.tool(
+    'get_product_cooling_status',
+    'Check whether any cooling chain breach was detected across all known batches for a product.',
+    GetProductInput.shape,
+    async ({ barcode }: z.infer<typeof GetProductInput>) => {
+      const result = await client.products.getCoolingStatus(barcode);
+      return { content: [{ type: 'text' as const, text: JSON.stringify(result) }] };
+    },
+  );
 }

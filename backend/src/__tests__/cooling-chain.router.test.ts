@@ -68,6 +68,13 @@ const sampleCoolingData: CoolingChainEdgeData[] = [
         celsius: 14.1,
       },
     ],
+    anomaly: {
+      hasBreach: true,
+      averageCelsius: 9.1,
+      upperBound: 11.1,
+      lowerBound: 7.1,
+      thresholdCelsius: 2,
+    },
   },
 ];
 
